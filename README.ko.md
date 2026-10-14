@@ -25,6 +25,8 @@ git clone https://github.com/neulketing/hotbrief.git && cd hotbrief && l10n/appl
 | <img src="l10n/demo/ko-home.png" alt="HotBrief 한국어판 홈 화면" width="420"> | <img src="l10n/demo/ko-item.png" alt="HotBrief 한국어판 기사 상세 화면" width="420"> |
 | **공유 이미지(한글 글꼴)** | **주제 목록** |
 | <img src="l10n/demo/ko-share-card.png" alt="한국어 공유 이미지" width="420"> | <img src="l10n/demo/ko-topics.png" alt="주제 목록 화면" width="420"> |
+| **일간 브리핑(제호 "AI일간")** | **소개** |
+| <img src="l10n/demo/ko-daily.png" alt="한국어 일간 브리핑" width="420"> | <img src="l10n/demo/ko-about.png" alt="소개 화면" width="420"> |
 
 ## 무엇을 하나
 

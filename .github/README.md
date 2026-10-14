@@ -25,6 +25,8 @@ Both editions running locally on 2026-10-14 (model: DeepSeek; embeddings: Gemini
 | <img src="../l10n/demo/ko-home.png" alt="HotBrief Korean edition, home page" width="420"> | <img src="../l10n/demo/ko-item.png" alt="HotBrief Korean edition, story page" width="420"> |
 | **Korean share image (Noto Sans KR)** | **US edition: all news, times in UTC** |
 | <img src="../l10n/demo/ko-share-card.png" alt="Korean share image" width="420"> | <img src="../l10n/demo/en-all.png" alt="HotBrief US edition, all news" width="420"> |
+| **Korean daily briefing (nameplate regenerated in Hangul)** | **Korean about page** |
+| <img src="../l10n/demo/ko-daily.png" alt="HotBrief Korean daily briefing" width="420"> | <img src="../l10n/demo/ko-about.png" alt="HotBrief Korean about page" width="420"> |
 
 ## What it does
 

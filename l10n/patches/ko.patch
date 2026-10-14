@@ -2085,7 +2085,7 @@ index 819060d..b895e85 100644
          </p>
        </footer>
 diff --git a/apps/web/app/features/report/format.ts b/apps/web/app/features/report/format.ts
-index a8aac05..9469d86 100644
+index a8aac05..6bb17b9 100644
 --- a/apps/web/app/features/report/format.ts
 +++ b/apps/web/app/features/report/format.ts
 @@ -1,13 +1,13 @@
@@ -2105,7 +2105,12 @@ index a8aac05..9469d86 100644
  
  export function kindFromPath(pathname: string): ReportKind {
    if (pathname.startsWith("/weekly")) return "weekly";
-@@ -30,9 +30,9 @@ export const ENTRIES_UNIT = `${measure}${noun}`;
+@@ -26,13 +26,13 @@ const pad = (n: number) => String(n).padStart(2, "0");
+ 
+ const { measure, noun } = REPORTS.entry;
+ /** "件大事": what an issue counts its entries in, in the site's words (REPORTS.entry). */
+-export const ENTRIES_UNIT = `${measure}${noun}`;
++export const ENTRIES_UNIT = `${measure} ${noun}`; // HotBrief ko: "4 건 주요 소식"
  
  /** "这一天的 4 件 AI 大事" / "本周的 12 件 AI 大事" / "8 月的 20 件 AI 大事" (the subject and REPORTS.entry from site/site.ts). */
  export function headline(kind: ReportKind, key: string, count: number): string {
