@@ -13,6 +13,9 @@ git clone https://github.com/neulketing/hotbrief.git && cd hotbrief && l10n/appl
 
 For the Korean edition, use `l10n/apply.sh ko`. Then open <http://localhost:3000>; the admin is at `/admin`, with the password in `.env` (`ADMIN_PASSWORD`).
 
+**Don’t want to run it yourself?** We host it for you or install it on your servers: [pricing](https://hotbrief-pricing.neulketing.workers.dev/en/).
+
+
 ## Screenshots
 
 Both editions running locally on 2026-10-14 (model: DeepSeek; embeddings: Gemini for the Korean run). Every headline, summary and "why it matters" note was written by the model; in the Korean edition, English sources (Google DeepMind, OpenAI) were rewritten in Korean too.

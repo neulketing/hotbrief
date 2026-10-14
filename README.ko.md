@@ -13,6 +13,9 @@ git clone https://github.com/neulketing/hotbrief.git && cd hotbrief && l10n/appl
 
 <http://localhost:3000> 을 열면 됩니다. 관리자 화면은 `/admin`, 비밀번호는 `.env` 의 `ADMIN_PASSWORD` 입니다.
 
+**직접 운영하기 번거롭다면** 저희가 대신 운영하거나 회사 서버에 설치해 드립니다: [요금 안내](https://hotbrief-pricing.neulketing.workers.dev/).
+
+
 ## 실제 화면
 
 로컬에서 한국 언론 네 곳과 해외 공식 출처 두 곳으로 돌린 화면입니다(2026-10-14, 모델 DeepSeek, 임베딩 Gemini). 제목, 요약, 추천 이유는 모두 모델이 한국어로 쓴 것이고, 영어 원문(Google DeepMind, OpenAI)도 한국어로 옮겨 썼습니다.
