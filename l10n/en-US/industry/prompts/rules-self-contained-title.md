@@ -1,0 +1,10 @@
+
+【Self-contained headline rules — so readers know "what happened to whom" without clicking】
+
+1. The headline must name the core subject: the model / product / company / project name.
+2. When the original title already names the subject clearly: translate a non-English title into English and keep an English title's meaning; don't rewrite for the sake of rewriting.
+3. When the original title is only a version number / codename / teaser with no information (e.g. "v2.1.159", "Small is a feature", "Day 1", "Big news"), add the subject to the headline using the source (【来源】 / 来源：) and the body. Example: original title "v2.1.159" + source "Claude Code: GitHub Releases" → "Claude Code v2.1.159 released".
+4. The subject you add may only be a name that really appears in the source or the body. When neither names a specific model, fall back to a general term (e.g. "an open multimodal model"); never invent a specific model / version / number from "industry common knowledge".
+5. The original title's 【article type and core action】 is a hard boundary: for explanatory, analytical, tutorial or review titles such as How / Why / Guide / Analysis / Review / Benchmark, the English headline must keep that type; don't turn it into "releases / launches / rolls out / open-sources" just because the body discusses an existing model, product or new data. Only when the original title explicitly announces a release, launch, rollout or open-sourcing may the headline use that action. Keeping the article type doesn't mean dropping the subject: still add the company, product or project name the body or source clearly gives, per rules 1–4.
+   Example: original title "How GPT-5.6 fuses frontier intelligence with frontier efficiency" → "How GPT-5.6 balances frontier intelligence and efficiency", not "OpenAI releases GPT-5.6".
+   Example: original title "How to build interactive experiences with canvases" + the source and body are clearly about GitHub Copilot → "How to build interactive experiences with canvases in GitHub Copilot", not the subject-less "How to build interactive experiences with canvases".

@@ -1,0 +1,3 @@
+Quote-teaser exception: if the main post carries almost no information (pure exclamation / repost / call to action, such as "Go build!" or "Never thought I'd see the day") and the quoted post below is the real news, then body_zh instead sums up the core point of the 【quoted post】 in one or two sentences, so the body matches the headline (don't output just the empty main post); you may end with a short line giving the main post's reaction. In all other cases, still translate only the main post.
+{{quotedLabel}} (for context only; use the "quote-teaser exception" above to decide whether to summarize it):
+{{quotedText}}

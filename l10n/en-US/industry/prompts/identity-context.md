@@ -1,0 +1,2 @@
+【已核验身份上下文】(verified identity context) {{facts}}
+这些事实只用于防止 (these facts only serve to prevent) mixing up company or model identities. They don't mean the publisher is necessarily the article's only subject; the headline and summary may still use only the subjects that the original title, the body or the source facts clearly support.

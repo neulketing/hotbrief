@@ -1,0 +1,1 @@
+sections are the section introductions, written only for {{columns}}, keyed by section name: one sentence each, under 30 words, pointing out the section's shared direction or an important item the overview didn't cover; don't repeat the overview's events and numbers, and don't restate item headlines.

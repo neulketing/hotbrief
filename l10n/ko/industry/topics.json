@@ -1,0 +1,372 @@
+{
+  "groups": [
+    {
+      "key": "company",
+      "name": "회사와 모델",
+      "blurb": "회사별로 모델, 제품, 경영 소식을 따라갑니다"
+    },
+    {
+      "key": "field",
+      "name": "기술 분야",
+      "blurb": "기술 분야별로 깊이 봅니다: 에이전트, 멀티모달, 로봇……"
+    },
+    {
+      "key": "genre",
+      "name": "콘텐츠 유형",
+      "blurb": "콘텐츠 유형별로 봅니다: 논문, 튜토리얼, 의견, 정책……"
+    }
+  ],
+  "topics": [
+    {
+      "slug": "openai",
+      "name": "OpenAI / ChatGPT",
+      "group": "company",
+      "entityId": "openai",
+      "definition": "OpenAI의 모든 소식: GPT 계열 모델, ChatGPT와 Sora 제품, 회사 전략과 인사를 계속 따라갑니다."
+    },
+    {
+      "slug": "anthropic",
+      "name": "Anthropic / Claude",
+      "group": "company",
+      "entityId": "anthropic",
+      "definition": "Anthropic의 모든 소식: Claude 계열 모델, Claude Code, 안전 연구 노선과 회사 행보를 계속 따라갑니다."
+    },
+    {
+      "slug": "google",
+      "name": "Google / Gemini",
+      "group": "company",
+      "entityId": "google",
+      "aliases": [
+        "DeepMind"
+      ],
+      "definition": "Google과 DeepMind의 AI 소식: Gemini 계열, Veo 영상 모델, 연구 성과와 제품 생태계를 계속 따라갑니다."
+    },
+    {
+      "slug": "deepseek",
+      "name": "DeepSeek",
+      "group": "company",
+      "entityId": "deepseek",
+      "definition": "DeepSeek의 모델 출시, 오픈 가중치, 기술 보고서, API 가격 변화."
+    },
+    {
+      "slug": "qwen",
+      "name": "알리바바 Qwen",
+      "group": "company",
+      "entityId": "qwen",
+      "definition": "알리바바 Qwen 계열의 오픈소스 출시와 개선: 플래그십 모델부터 온디바이스 소형 모델까지."
+    },
+    {
+      "slug": "kimi",
+      "name": "Kimi / Moonshot AI",
+      "group": "company",
+      "entityId": "kimi",
+      "definition": "Moonshot AI의 Kimi 모델과 제품: K 계열 오픈소스 모델, 긴 컨텍스트 기술, 제품 변화."
+    },
+    {
+      "slug": "minimax",
+      "name": "MiniMax",
+      "group": "company",
+      "entityId": "minimax",
+      "definition": "MiniMax의 모델과 제품: M 계열 대형 모델, 음성과 멀티모달 기능, 오픈소스와 사업화."
+    },
+    {
+      "slug": "zhipu",
+      "name": "Zhipu GLM",
+      "group": "company",
+      "entityId": "zhipu",
+      "definition": "Zhipu의 GLM 계열 모델: 플래그십 오픈소스 출시, 코드와 추론 능력 개선, 사업화와 생태계."
+    },
+    {
+      "slug": "xai",
+      "name": "xAI / Grok",
+      "group": "company",
+      "entityId": "xai",
+      "definition": "일론 머스크의 xAI와 Grok 계열의 모든 소식: 모델 개선, 연산 자원 확장, X 플랫폼 통합."
+    },
+    {
+      "slug": "meta",
+      "name": "Meta / Llama",
+      "group": "company",
+      "entityId": "meta",
+      "definition": "Meta의 AI 소식: Llama와 Muse 계열 모델, 초지능 연구 조직, 인재 영입과 연산 투자."
+    },
+    {
+      "slug": "microsoft",
+      "name": "Microsoft / Copilot",
+      "group": "company",
+      "entityId": "microsoft",
+      "definition": "Microsoft의 AI 행보: Copilot 제품군, Azure AI 인프라, OpenAI와의 관계."
+    },
+    {
+      "slug": "nvidia",
+      "name": "NVIDIA 엔비디아",
+      "group": "company",
+      "entityId": "nvidia",
+      "definition": "엔비디아의 AI 칩과 생태계: 새 GPU, CUDA 생태계, 로봇 플랫폼, AI 연산 시장의 흐름."
+    },
+    {
+      "slug": "hugging-face",
+      "name": "Hugging Face",
+      "group": "company",
+      "entityId": "hugging-face",
+      "definition": "Hugging Face 오픈소스 커뮤니티: 인기 모델과 데이터셋, 리더보드 변화, 오픈소스 생태계의 온도계."
+    },
+    {
+      "slug": "cursor",
+      "name": "Cursor",
+      "group": "company",
+      "entityId": "cursor",
+      "definition": "Cursor(Anysphere)의 에디터와 코딩 에이전트: 제품 개선, 자체 모델, 가격 변화."
+    },
+    {
+      "slug": "openrouter",
+      "name": "OpenRouter",
+      "group": "company",
+      "entityId": "openrouter",
+      "definition": "OpenRouter 모델 라우팅 플랫폼: 새 모델 등록, 사용량 순위, 개발자 선택의 실제 시장 신호."
+    },
+    {
+      "slug": "naver",
+      "name": "네이버 / HyperCLOVA X",
+      "group": "company",
+      "entityId": "naver",
+      "definition": "네이버의 AI 소식: HyperCLOVA X 모델, 검색과 서비스에 붙는 AI 기능, 네이버클라우드의 AI 인프라."
+    },
+    {
+      "slug": "kakao",
+      "name": "카카오 / Kanana",
+      "group": "company",
+      "entityId": "kakao",
+      "definition": "카카오의 AI 소식: Kanana 모델, 카카오톡에 들어가는 AI 기능, 제휴와 서비스 변화."
+    },
+    {
+      "slug": "lg-ai",
+      "name": "LG AI연구원 / EXAONE",
+      "group": "company",
+      "entityId": "lg-ai",
+      "definition": "LG AI연구원의 EXAONE 계열 모델: 오픈 가중치 공개, 추론 모델, 산업 적용 사례."
+    },
+    {
+      "slug": "upstage",
+      "name": "업스테이지 / Solar",
+      "group": "company",
+      "entityId": "upstage",
+      "definition": "업스테이지의 Solar 모델과 문서 AI: 모델 출시, API, 기업 도입 소식."
+    },
+    {
+      "slug": "samsung",
+      "name": "삼성 AI",
+      "group": "company",
+      "entityId": "samsung",
+      "definition": "삼성의 AI 소식: Gauss 모델, 갤럭시 AI 기능, AI 반도체와 HBM 흐름."
+    },
+    {
+      "slug": "agent",
+      "name": "AI 에이전트",
+      "group": "field",
+      "tags": [
+        "에이전트"
+      ],
+      "definition": "모델이 스스로 계획하고 도구를 불러 여러 단계 작업을 끝내는 분야. Claude Code, Manus 부터 각종 에이전트 프레임워크와 평가 벤치마크까지."
+    },
+    {
+      "slug": "coding",
+      "name": "AI 코딩",
+      "group": "field",
+      "tags": [
+        "코딩"
+      ],
+      "definition": "AI가 코드를 쓰는 모든 것: 코딩 도우미, 바이브 코딩, 코드 모델 평가, 개발 방식의 변화."
+    },
+    {
+      "slug": "reasoning",
+      "name": "추론 능력",
+      "group": "field",
+      "tags": [
+        "추론"
+      ],
+      "definition": "모델 추론 능력의 진전: 사고의 사슬, 추론 모델, 수학과 논리 벤치마크의 돌파와 논쟁."
+    },
+    {
+      "slug": "multimodal",
+      "name": "멀티모달",
+      "group": "field",
+      "tags": [
+        "멀티모달"
+      ],
+      "definition": "텍스트 너머의 능력: 시각 이해, 이미지와 글을 섞은 입력, 음성·영상 입출력 모델과 제품."
+    },
+    {
+      "slug": "image-gen",
+      "name": "이미지 생성",
+      "group": "field",
+      "tags": [
+        "이미지 생성"
+      ],
+      "definition": "AI 그림의 최전선: 텍스트-이미지 모델, 이미지 편집 기능, 창작 도구 생태계."
+    },
+    {
+      "slug": "video",
+      "name": "AI 영상",
+      "group": "field",
+      "tags": [
+        "영상"
+      ],
+      "definition": "AI 영상 생성과 이해: 텍스트-영상 모델, 영상 편집 도구, 영상 제작 방식의 변화."
+    },
+    {
+      "slug": "voice",
+      "name": "음성과 오디오",
+      "group": "field",
+      "tags": [
+        "음성"
+      ],
+      "definition": "AI 음성과 오디오: 음성 합성, 실시간 대화, 음악 생성, 오디오 이해 모델과 제품."
+    },
+    {
+      "slug": "embodied",
+      "name": "로봇·피지컬 AI",
+      "group": "field",
+      "tags": [
+        "로봇/피지컬 AI"
+      ],
+      "definition": "AI가 물리 세계로 들어가는 흐름: 휴머노이드 로봇, 로봇 기반 모델, 실제 환경 조작 능력."
+    },
+    {
+      "slug": "on-device",
+      "name": "온디바이스 AI",
+      "group": "field",
+      "tags": [
+        "온디바이스"
+      ],
+      "definition": "휴대폰, PC, 엣지 기기에서 돌아가는 AI: 소형 모델, 로컬 추론, 기기용 칩."
+    },
+    {
+      "slug": "open-source",
+      "name": "오픈소스 생태계",
+      "group": "field",
+      "tags": [
+        "오픈소스 생태계",
+        "오픈소스/저장소"
+      ],
+      "definition": "오픈소스 모델, 프레임워크, 저장소: 가중치 공개, 갑자기 뜬 커뮤니티 프로젝트, 오픈과 폐쇄 진영의 힘겨루기."
+    },
+    {
+      "slug": "engineering",
+      "name": "배포 엔지니어링",
+      "group": "field",
+      "tags": [
+        "배포/엔지니어링"
+      ],
+      "definition": "모델을 실제로 돌리는 엔지니어링: 추론 최적화, 메모리와 비용, 서빙 구조와 인프라 선택."
+    },
+    {
+      "slug": "data-training",
+      "name": "데이터와 학습",
+      "group": "field",
+      "tags": [
+        "데이터/학습"
+      ],
+      "definition": "학습 쪽의 노하우: 데이터셋 구축, 합성 데이터, 사전·사후 학습 방법, 연산 자원과 학습 비용."
+    },
+    {
+      "slug": "safety",
+      "name": "안전과 정렬",
+      "group": "field",
+      "tags": [
+        "안전/정렬"
+      ],
+      "definition": "AI 안전과 정렬: 탈옥과 방어, 모델 행동 연구, 안전 평가와 거버넌스 체계."
+    },
+    {
+      "slug": "mcp",
+      "name": "MCP와 도구 호출",
+      "group": "field",
+      "tags": [
+        "MCP/도구 호출"
+      ],
+      "definition": "모델이 바깥 세계와 연결되는 프로토콜과 실무: MCP 생태계, 함수 호출, 도구 연동."
+    },
+    {
+      "slug": "model-releases",
+      "name": "모델 출시",
+      "group": "genre",
+      "tags": [
+        "모델 출시"
+      ],
+      "definition": "새 모델의 출시, 공개, 개선: 주요 회사의 플래그십 업데이트, 오픈 가중치 공개, 성능과 가격 변화를 바로 기록합니다."
+    },
+    {
+      "slug": "product-updates",
+      "name": "제품 업데이트",
+      "group": "genre",
+      "tags": [
+        "제품 업데이트"
+      ],
+      "definition": "AI 제품과 앱의 새 기능, 개편, 사업화: 어느 제품이 더 좋아지고, 비싸지고, 쓸 수 있게 됐는지."
+    },
+    {
+      "slug": "papers",
+      "name": "논문·연구",
+      "group": "genre",
+      "tags": [
+        "논문/연구"
+      ],
+      "definition": "읽을 만한 AI 논문과 연구 성과: 구조 혁신, 학습 방법, 능력 측정, 이론의 진전을 골라 풀어 줍니다."
+    },
+    {
+      "slug": "benchmarks",
+      "name": "평가·벤치마크",
+      "group": "genre",
+      "tags": [
+        "평가/벤치마크"
+      ],
+      "definition": "결국 어느 모델이 센가: 벤치마크 성적, 평가 방법 논쟁, 리더보드 변화를 계속 기록합니다."
+    },
+    {
+      "slug": "tutorials",
+      "name": "튜토리얼·실전",
+      "group": "genre",
+      "tags": [
+        "튜토리얼/실전"
+      ],
+      "definition": "바로 따라 쓸 수 있는 실무 내용: 프롬프트 요령, 작업 흐름 구성, 도구 사용법, 시행착오."
+    },
+    {
+      "slug": "opinions",
+      "name": "주요 인물 의견",
+      "group": "genre",
+      "tags": [
+        "주요 인물 의견"
+      ],
+      "definition": "업계 핵심 인물의 생각: 창업자 인터뷰, 연구자 논쟁, 투자자의 판단."
+    },
+    {
+      "slug": "trends",
+      "name": "현상과 트렌드",
+      "group": "genre",
+      "tags": [
+        "현상/트렌드"
+      ],
+      "definition": "지금 일어나는 업계 차원의 변화: 사용 습관의 이동, 새로 드러나는 능력, 사회적 영향, 시장 판도."
+    },
+    {
+      "slug": "industry",
+      "name": "업계 동향",
+      "group": "genre",
+      "tags": [
+        "업계 동향"
+      ],
+      "definition": "AI 업계의 비즈니스 흐름: 투자 유치와 인수합병, 인사 이동, 제휴와 경쟁, 정책과 시장 신호."
+    },
+    {
+      "slug": "policy",
+      "name": "정책·규제",
+      "group": "genre",
+      "tags": [
+        "정책/규제"
+      ],
+      "definition": "AI 관련 정책·법령과 정부 규제: 입법 진행, 수출 통제, 국제 거버넌스. 한국의 AI 기본법과 하위 법령도 포함합니다."
+    }
+  ]
+}

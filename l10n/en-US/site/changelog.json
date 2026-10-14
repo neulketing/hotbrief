@@ -1,0 +1,14 @@
+{
+  "latestVersion": "2026-10-01T08:00",
+  "releases": [
+    {
+      "date": "2026-10-01",
+      "time": "08:00",
+      "kind": "公告",
+      "title": "Site launched",
+      "body": [
+        "This site runs on HotBrief (based on AIHOT by 数字生命卡兹克 (Khazix)): it watches the sources, picks what's worth reading, groups reports of the same story and publishes a briefing every day."
+      ]
+    }
+  ]
+}
