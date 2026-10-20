@@ -12,17 +12,18 @@
  * commentary marks commentary categories (tutorials, opinion): when a story the briefing already covered gets a commentary follow-up,
  * it takes a one-line brief only (unless enough sources report it).
  * Items without a category go into the section of the first category whose key is industry (or the last section if there is none).
+ * tagColor is the color of this category's small tag after the headline on Feishu push cards (a Feishu text_tag color name).
  * feedLabel is the name in per-category RSS titles (label if omitted). To publish one category inside another in the public API,
  * RSS and MCP, use PUBLIC_CATEGORIES in site/site.ts.
  */
 export const CATEGORIES = [
-  { key: "ai-models", label: "Models", feedLabel: "AI Models", section: "Model releases and updates", guide: "Releases of models themselves: new versions, open weights, changes in capability or price, and model results on existing leaderboards. Publishing a benchmark score once is not a new benchmark, and it is not a tutorial." },
-  { key: "ai-products", label: "Products", feedLabel: "AI Products", section: "Product launches and updates", guide: "Launches and updates of AI products people can use: features, apps, tools, APIs, platforms and engineering components. Inference frameworks, kernel libraries and hardware support released by a model company are still products; don't file them under models because of the company's name." },
-  { key: "industry", label: "Industry", feedLabel: "Industry News", section: "Industry news", guide: "Things that have happened: company operations, funding and M&A, people moves, partnerships, lawsuits, policy, real security incidents and the progress of investigations. News posted by the party involved, with an attitude, does not become opinion because of that." },
-  { key: "paper", label: "Research", feedLabel: "Research", section: "Papers and research", guide: "Papers, technical reports, new benchmarks or research datasets whose core is a new method, experimental design or finding. Systematic red-team experiments are research; results on existing leaderboards go to models, and news investigations of real incidents go to industry." },
-  { key: "tip", label: "How-to", section: "Tips and opinion", guide: "Methods, prompts, tool usage, engineering retrospectives and technical explainers readers can follow and reuse. The point is a reusable practice; a tool launch alone is a product, and attitude or predictions without a method are opinion.", commentary: true },
-  { key: "opinion", label: "Opinion", section: "Tips and opinion", guide: "The core is the author's interpretation, judgment, argument, prediction, commentary or interview views. Discussing the market does not make it industry by default, and a famous author does not make it opinion by default.", commentary: true },
-] as const satisfies ReadonlyArray<{ key: string; label: string; feedLabel?: string; section: string; guide: string; commentary?: true }>;
+  { key: "ai-models", tagColor: "indigo", label: "Models", feedLabel: "AI Models", section: "Model releases and updates", guide: "Releases of models themselves: new versions, open weights, changes in capability or price, and model results on existing leaderboards. Publishing a benchmark score once is not a new benchmark, and it is not a tutorial." },
+  { key: "ai-products", tagColor: "turquoise", label: "Products", feedLabel: "AI Products", section: "Product launches and updates", guide: "Launches and updates of AI products people can use: features, apps, tools, APIs, platforms and engineering components. Inference frameworks, kernel libraries and hardware support released by a model company are still products; don't file them under models because of the company's name." },
+  { key: "industry", tagColor: "orange", label: "Industry", feedLabel: "Industry News", section: "Industry news", guide: "Things that have happened: company operations, funding and M&A, people moves, partnerships, lawsuits, policy, real security incidents and the progress of investigations. News posted by the party involved, with an attitude, does not become opinion because of that." },
+  { key: "paper", tagColor: "violet", label: "Research", feedLabel: "Research", section: "Papers and research", guide: "Papers, technical reports, new benchmarks or research datasets whose core is a new method, experimental design or finding. Systematic red-team experiments are research; results on existing leaderboards go to models, and news investigations of real incidents go to industry." },
+  { key: "tip", tagColor: "green", label: "How-to", section: "Tips and opinion", guide: "Methods, prompts, tool usage, engineering retrospectives and technical explainers readers can follow and reuse. The point is a reusable practice; a tool launch alone is a product, and attitude or predictions without a method are opinion.", commentary: true },
+  { key: "opinion", tagColor: "purple", label: "Opinion", section: "Tips and opinion", guide: "The core is the author's interpretation, judgment, argument, prediction, commentary or interview views. Discussing the market does not make it industry by default, and a famous author does not make it opinion by default.", commentary: true },
+] as const satisfies ReadonlyArray<{ key: string; tagColor: string; label: string; feedLabel?: string; section: string; guide: string; commentary?: true }>;
 
 /**
  * The kind of release this field watches most (for AI: new models): the "N new models" on the daily briefing's masthead, and
@@ -77,28 +78,30 @@ export const TAG_SYNONYMS: Readonly<Record<string, string>> = {
 
 /**
  * Company topics: id → display name, the tag shown on cards (null: grouped by entity:<id> only), aliases.
- * aliases are for the structure model; otherNames are the company's own other names (official account names, sub-brands),
- * also accepted when matching a fact's subject to the publisher.
+ * aliases are for the structure model; orgNames are the organization names the company opens its posts with (company, lab, team),
+ * which can be left out on its own topic page because readers know who is meant; otherNames are the company's other names
+ * (official account names, sub-brands). All of these names are used to recognize which company is meant, e.g. when matching
+ * a fact's subject to the publisher.
  */
-export const ENTITIES: Record<string, { name: string; displayTag: string | null; aliases: string[]; otherNames?: string[] }> = {
+export const ENTITIES: Record<string, { name: string; displayTag: string | null; aliases: string[]; orgNames?: string[]; otherNames?: string[] }> = {
   "world-labs": { name: "World Labs", displayTag: null, aliases: ["World Labs"] },
   "thinking-machines": { name: "Thinking Machines Lab", displayTag: null, aliases: ["Thinking Machines"] },
   amd: { name: "AMD", displayTag: null, aliases: ["AMD", "Advanced Micro Devices"] },
-  openai: { name: "OpenAI", displayTag: "OpenAI", aliases: ["OpenAI", "ChatGPT", "Sora", "Codex", "GPT"], otherNames: ["OpenAI Developers"] },
-  anthropic: { name: "Anthropic", displayTag: "Anthropic", aliases: ["Anthropic", "Claude"], otherNames: ["Claude Code"] },
-  google: { name: "Google", displayTag: "Google", aliases: ["Google", "DeepMind", "Gemini"], otherNames: ["Google DeepMind", "Google Research", "Google AI", "Google Labs", "Google Cloud"] },
-  deepseek: { name: "DeepSeek", displayTag: "DeepSeek", aliases: ["DeepSeek"] },
-  qwen: { name: "Alibaba Qwen", displayTag: null, aliases: ["Qwen", "Tongyi", "Alibaba"], otherNames: ["Qwen Team", "Alibaba Cloud"] },
-  kimi: { name: "Kimi / Moonshot AI", displayTag: null, aliases: ["Kimi", "Moonshot"], otherNames: ["Moonshot AI"] },
-  minimax: { name: "MiniMax", displayTag: null, aliases: ["MiniMax", "Hailuo"] },
-  zhipu: { name: "Zhipu GLM", displayTag: null, aliases: ["Zhipu", "GLM", "Z.ai"], otherNames: ["Zhipu AI"] },
-  xai: { name: "xAI", displayTag: "xAI", aliases: ["xAI", "Grok"], otherNames: ["SpaceXAI"] },
-  meta: { name: "Meta", displayTag: "Meta", aliases: ["Meta", "Llama"], otherNames: ["Meta AI", "AI at Meta"] },
-  microsoft: { name: "Microsoft", displayTag: "Microsoft", aliases: ["Microsoft", "Copilot"], otherNames: ["Microsoft Research", "Microsoft AI"] },
-  nvidia: { name: "NVIDIA", displayTag: "NVIDIA", aliases: ["NVIDIA"] },
-  "hugging-face": { name: "Hugging Face", displayTag: "Hugging Face", aliases: ["Hugging Face"], otherNames: ["HuggingFace"] },
-  cursor: { name: "Cursor", displayTag: null, aliases: ["Cursor", "Anysphere"] },
-  openrouter: { name: "OpenRouter", displayTag: null, aliases: ["OpenRouter"] },
+  openai: { name: "OpenAI", displayTag: "OpenAI", aliases: ["OpenAI", "ChatGPT", "Sora", "Codex", "GPT"], orgNames: ["OpenAI"], otherNames: ["OpenAI Developers"] },
+  anthropic: { name: "Anthropic", displayTag: "Anthropic", aliases: ["Anthropic", "Claude"], orgNames: ["Anthropic"], otherNames: ["Claude Code"] },
+  google: { name: "Google", displayTag: "Google", aliases: ["Google", "DeepMind", "Gemini"], orgNames: ["Google DeepMind", "Google Research", "Google", "DeepMind"], otherNames: ["Google AI", "Google Labs", "Google Cloud"] },
+  deepseek: { name: "DeepSeek", displayTag: "DeepSeek", aliases: ["DeepSeek"], orgNames: ["DeepSeek"] },
+  qwen: { name: "Alibaba Qwen", displayTag: null, aliases: ["Qwen", "Tongyi", "Alibaba"], orgNames: ["Qwen Team", "Qwen", "Alibaba"], otherNames: ["Alibaba Cloud"] },
+  kimi: { name: "Kimi / Moonshot AI", displayTag: null, aliases: ["Kimi", "Moonshot"], orgNames: ["Moonshot AI", "Kimi"] },
+  minimax: { name: "MiniMax", displayTag: null, aliases: ["MiniMax", "Hailuo"], orgNames: ["MiniMax"] },
+  zhipu: { name: "Zhipu GLM", displayTag: null, aliases: ["Zhipu", "GLM", "Z.ai"], orgNames: ["Zhipu AI", "Z.ai"], otherNames: ["Zhipu"] },
+  xai: { name: "xAI", displayTag: "xAI", aliases: ["xAI", "Grok"], orgNames: ["SpaceX Super Intelligence", "SpaceXAI", "SpaceXSI", "xAI"], otherNames: ["Grok Bot"] },
+  meta: { name: "Meta", displayTag: "Meta", aliases: ["Meta", "Llama"], orgNames: ["Meta Superintelligence Labs", "Meta AI", "Meta"], otherNames: ["AI at Meta", "Muse"] },
+  microsoft: { name: "Microsoft", displayTag: "Microsoft", aliases: ["Microsoft", "Copilot"], orgNames: ["Microsoft Research", "Microsoft AI", "Microsoft"] },
+  nvidia: { name: "NVIDIA", displayTag: "NVIDIA", aliases: ["NVIDIA"], orgNames: ["NVIDIA"] },
+  "hugging-face": { name: "Hugging Face", displayTag: "Hugging Face", aliases: ["Hugging Face"], orgNames: ["Hugging Face", "HuggingFace"] },
+  cursor: { name: "Cursor", displayTag: null, aliases: ["Cursor", "Anysphere"], orgNames: ["Cursor"] },
+  openrouter: { name: "OpenRouter", displayTag: null, aliases: ["OpenRouter"], orgNames: ["OpenRouter"] },
   amazon: { name: "Amazon / AWS", displayTag: "Amazon", aliases: ["Amazon", "AWS", "Bedrock", "Alexa"], otherNames: ["Amazon Web Services", "AWS Machine Learning"] },
   apple: { name: "Apple", displayTag: "Apple", aliases: ["Apple", "Apple Intelligence", "Siri"] },
   mistral: { name: "Mistral AI", displayTag: null, aliases: ["Mistral", "Le Chat"], otherNames: ["Mistral AI"] },

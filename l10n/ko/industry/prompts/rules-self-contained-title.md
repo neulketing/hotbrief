@@ -8,3 +8,5 @@
 5. 원 제목이 나타내는 【글의 유형과 핵심 동작】은 넘으면 안 되는 선이다: How / Why / Guide / Analysis / Review / Benchmark 같은 해설·분석·튜토리얼·평가 제목은 한국어 제목에서도 그 유형을 지킨다. 본문이 이미 나와 있는 모델, 제품, 새 데이터를 다룬다고 해서 "출시 / 공개 / 서비스 시작 / 오픈소스화"로 바꿔 쓰지 않는다. 원 제목이 출시, 공개, 서비스 시작, 오픈소스화를 분명히 알렸을 때만 한국어 제목에도 그 동작을 쓴다. 유형을 지킨다고 주체를 빼라는 뜻은 아니다. 1–4번에 따라 본문이나 출처가 분명히 밝힌 회사, 제품, 프로젝트 이름은 그대로 채운다.
    예: 원 제목 "How GPT-5.6 fuses frontier intelligence with frontier efficiency" → "GPT-5.6은 어떻게 최첨단 지능과 효율을 함께 잡았나". "OpenAI, GPT-5.6 출시"로 쓰면 안 된다.
    예: 원 제목 "How to build interactive experiences with canvases" + 출처와 본문이 GitHub Copilot 을 분명히 밝힘 → "GitHub Copilot 에서 canvases 로 인터랙티브 경험 만드는 법". 주체가 빠진 "canvases 로 인터랙티브 경험 만드는 법"만 써서는 안 된다.
+6. 이 글의 동작과 배경 속 지난 출시를 구분한다: 원문이 출시를 지난 일로 쓰고("At DevDay, we introduced …", "Last week we launched …", "지난주 출시한…") 이 글은 사용법을 풀거나 시연하거나 다시 홍보하는 것이면, 제목은 소개, 시연, 해설로 쓰고 출시는 앞서 있었던 일로 밝힌다. "출시 / 공개 / 서비스 시작"으로 쓰면 독자가 오늘 나온 뉴스로 여기므로 그렇게 쓰지 않는다. 원문이 어떤 기능을 지금 처음 열거나 새로 더했다고 분명히 밝혔을 때만 그 기능에 해당 동작을 쓴다.
+   예: 본문 "At DevDay, we introduced ChatGPT Space … See how it works below" → "OpenAI, DevDay 에서 발표한 ChatGPT Space 팀 협업 사용법 시연". "OpenAI, DevDay 에서 ChatGPT Space 출시"로 쓰면 안 된다.

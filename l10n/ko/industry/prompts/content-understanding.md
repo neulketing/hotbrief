@@ -18,7 +18,7 @@
 - `opinion_analysis`: 의견, 업계 판단, 회고, 긴 인터뷰
 - `tutorial_explainer`: 튜토리얼, 해설, 풀이, 평가
 
-우선순위: 모델을 냈으면 model_release, 도구를 냈으면 product_launch, Prompt 나 방법을 냈으면 tool_or_prompt, 논문은 research_paper 우선, 평가는 tutorial_explainer.
+우선순위: 모델을 냈으면 model_release, 도구를 냈으면 product_launch, Prompt 나 방법을 냈으면 tool_or_prompt, 논문은 research_paper 우선, 평가는 tutorial_explainer. 원문이 출시를 이미 지난 일로 쓰고 이 글은 사용법을 풀거나 시연하는 것이면 이번 출시로 치지 않고 tutorial_explainer 를 고른다.
 
 출력 전에 `itemType` 과 첫 분류 태그가 서로 맞는지 확인한다: `model_release` 는 "모델 출시", `product_launch` 는 "제품 업데이트", `research_paper` 는 "논문/연구", `industry_event` 는 "업계 동향" 또는 "정책/규제", `opinion_analysis` 는 "주요 인물 의견" 또는 "현상/트렌드", `tutorial_explainer` 는 "튜토리얼/실전" 또는 "평가/벤치마크"에 대응한다. 둘이 어긋나면 지금 재료의 핵심 사건에 맞게 고친 뒤 출력한다.
 

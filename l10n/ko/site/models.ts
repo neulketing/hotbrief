@@ -3,20 +3,8 @@
 // 배포 때 환경변수(PREFILTER_MODEL, SCORE_MODEL……)나 관리자 화면 "모델과 평가"에서 단계별로 바꿀 수 있다.
 // HotBrief 한국어판(l10n/ko): 원본 site/models.ts 에 Gemini(OpenAI 호환) 예시를 더했다.
 
-export interface ModelPreset {
-  service: string;
-  model: string;
-  baseUrlEnv: string;
-  apiKeyEnv: string;
-  /** 추가 요청 필드. 예: 짧은 구조화 작업에서 추론 끄기. */
-  extra?: Record<string, unknown>;
-  /** 추론 모델이 답 전에 생각하는 데 더 주는 출력 한도(token). 단계별 한도에 더해진다. default 는 환경변수 LLM_REASONING_TOKENS. */
-  reasoningTokens?: number;
-  /** JSON 모드를 지원한다. */
-  jsonMode: boolean;
-  /** 이미지를 볼 수 있다. */
-  vision?: boolean;
-}
+import type { ModelPreset } from "@aihot/contracts/site-config";
+export type { ModelPreset } from "@aihot/contracts/site-config";
 
 /** 이름 붙인 모델 예시(각자 자기 키가 필요하다). 안 쓰면 지워도 된다. */
 export const PRESETS: Record<string, ModelPreset> = {
@@ -25,10 +13,11 @@ export const PRESETS: Record<string, ModelPreset> = {
     service: "zhipu", model: "glm-5.3-flash", baseUrlEnv: "ZHIPU_BASE_URL", apiKeyEnv: "ZHIPU_API_KEY",
     extra: { thinking: { type: "enabled" }, reasoning_effort: "low" }, jsonMode: true, vision: true,
   },
-  // The scorer's parameters for glm-5.3-flash (score calls; temperature 1 is set per call).
+  // The scorer's parameters for glm-5.3-flash: temperature 1 with high reasoning, up to 180 s per call.
   "glm-5.3-flash-selection": {
     service: "zhipu", model: "glm-5.3-flash", baseUrlEnv: "ZHIPU_BASE_URL", apiKeyEnv: "ZHIPU_API_KEY",
     extra: { thinking: { type: "enabled", clear_thinking: false }, reasoning_effort: "high", top_p: 0.95 }, jsonMode: true, vision: true,
+    scoreCall: { temperature: 1, maxTokens: 65_536, timeoutMs: 180_000 },
   },
   // DeepSeek Flash reasons by default; structured tasks switch it off. deepseek-flash-think keeps it on,
   // with room in the output for the reasoning.

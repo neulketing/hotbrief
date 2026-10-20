@@ -9,16 +9,17 @@
  * 이 분류에 무엇이 들어가고 이웃 분류와 경계가 어디인지 알려 준다(전체 원칙은 prompts/structure.md).
  * commentary 는 해설류(튜토리얼, 의견)를 표시한다: 브리핑이 이미 다룬 일에 해설류 후속 보도가 오면 한 줄 단신만 차지한다(보도한 출처가 충분히 많을 때는 예외).
  * 분류가 안 된 자료는 key 가 industry 인 첫 분류가 속한 절에 넣는다(없으면 마지막 절).
+ * tagColor 는 Feishu 푸시 카드에서 제목 뒤에 붙는 이 분류의 작은 태그 색이다(Feishu text_tag 의 색 이름).
  * feedLabel 은 분류별 RSS 제목에 쓰는 이름(없으면 label). 공개 API·RSS·MCP 에서 한 분류를 다른 분류에 합쳐 내보내려면 site/site.ts 의 PUBLIC_CATEGORIES 에 쓴다.
  */
 export const CATEGORIES = [
-  { key: "ai-models", label: "모델", feedLabel: "AI 모델", section: "모델 출시·업데이트", guide: "모델 자체의 출시, 새 버전, 가중치 공개, 성능이나 가격 변화, 그리고 기존 리더보드에 오른 모델 성적. 벤치마크 점수를 한 번 공개한 것은 새 벤치마크 출시도 튜토리얼도 아니다." },
-  { key: "ai-products", label: "제품", feedLabel: "AI 제품", section: "제품 출시·업데이트", guide: "쓸 수 있는 AI 제품, 기능, 앱, 도구, API, 플랫폼, 엔지니어링 구성 요소의 출시와 업데이트. 모델 회사가 낸 추론 프레임워크, 연산 라이브러리, 하드웨어 지원 구성 요소도 제품이다. 회사 이름만 보고 모델로 분류하지 않는다." },
-  { key: "industry", label: "업계", feedLabel: "업계 동향", section: "업계 동향", guide: "이미 일어난 회사 경영, 투자 유치와 인수합병, 인사, 제휴, 소송, 정책, 실제 보안 사고와 조사 진행. 당사자가 직접 글을 올리고 입장을 밝혔다고 해서 의견이 되지는 않는다." },
-  { key: "paper", label: "논문", feedLabel: "논문", section: "논문·연구", guide: "새 연구 방법, 실험 설계, 발견이 핵심인 논문, 기술 보고서, 새 벤치마크, 연구용 데이터셋. 체계적인 레드팀 실험은 연구다. 기존 리더보드 성적은 모델, 실제 사고에 대한 취재 보도는 업계로 분류한다." },
-  { key: "tip", label: "튜토리얼", section: "팁과 의견", guide: "독자가 그대로 따라 쓸 수 있는 방법, 프롬프트, 도구 사용법, 엔지니어링 실무 회고, 기술 해설. 핵심은 다시 쓸 수 있는 방법이다. 도구 출시만 다루면 제품, 방법 없이 입장과 예측만 있으면 의견이다.", commentary: true },
-  { key: "opinion", label: "의견", section: "팁과 의견", guide: "핵심이 글쓴이의 해석, 판단, 주장, 예측, 논평, 인터뷰 속 견해인 것. 시장을 다룬다고 자동으로 업계가 되지 않고, 글쓴이가 유명하다고 자동으로 의견이 되지 않는다.", commentary: true },
-] as const satisfies ReadonlyArray<{ key: string; label: string; feedLabel?: string; section: string; guide: string; commentary?: true }>;
+  { key: "ai-models", tagColor: "indigo", label: "모델", feedLabel: "AI 모델", section: "모델 출시·업데이트", guide: "모델 자체의 출시, 새 버전, 가중치 공개, 성능이나 가격 변화, 그리고 기존 리더보드에 오른 모델 성적. 벤치마크 점수를 한 번 공개한 것은 새 벤치마크 출시도 튜토리얼도 아니다." },
+  { key: "ai-products", tagColor: "turquoise", label: "제품", feedLabel: "AI 제품", section: "제품 출시·업데이트", guide: "쓸 수 있는 AI 제품, 기능, 앱, 도구, API, 플랫폼, 엔지니어링 구성 요소의 출시와 업데이트. 모델 회사가 낸 추론 프레임워크, 연산 라이브러리, 하드웨어 지원 구성 요소도 제품이다. 회사 이름만 보고 모델로 분류하지 않는다." },
+  { key: "industry", tagColor: "orange", label: "업계", feedLabel: "업계 동향", section: "업계 동향", guide: "이미 일어난 회사 경영, 투자 유치와 인수합병, 인사, 제휴, 소송, 정책, 실제 보안 사고와 조사 진행. 당사자가 직접 글을 올리고 입장을 밝혔다고 해서 의견이 되지는 않는다." },
+  { key: "paper", tagColor: "violet", label: "논문", feedLabel: "논문", section: "논문·연구", guide: "새 연구 방법, 실험 설계, 발견이 핵심인 논문, 기술 보고서, 새 벤치마크, 연구용 데이터셋. 체계적인 레드팀 실험은 연구다. 기존 리더보드 성적은 모델, 실제 사고에 대한 취재 보도는 업계로 분류한다." },
+  { key: "tip", tagColor: "green", label: "튜토리얼", section: "팁과 의견", guide: "독자가 그대로 따라 쓸 수 있는 방법, 프롬프트, 도구 사용법, 엔지니어링 실무 회고, 기술 해설. 핵심은 다시 쓸 수 있는 방법이다. 도구 출시만 다루면 제품, 방법 없이 입장과 예측만 있으면 의견이다.", commentary: true },
+  { key: "opinion", tagColor: "purple", label: "의견", section: "팁과 의견", guide: "핵심이 글쓴이의 해석, 판단, 주장, 예측, 논평, 인터뷰 속 견해인 것. 시장을 다룬다고 자동으로 업계가 되지 않고, 글쓴이가 유명하다고 자동으로 의견이 되지 않는다.", commentary: true },
+] as const satisfies ReadonlyArray<{ key: string; tagColor: string; label: string; feedLabel?: string; section: string; guide: string; commentary?: true }>;
 
 /**
  * 이 분야에서 가장 주목받는 출시 유형(AI 분야는 새 모델): 일간 브리핑 머리의 "새 모델 N개", 분류를 고친 뒤 이미 나간 브리핑을 다시 셀 때 쓴다.
@@ -73,28 +74,29 @@ export const TAG_SYNONYMS: Readonly<Record<string, string>> = {
 
 /**
  * 회사 주제: id → 표시 이름, 카드에 보일 태그(null 이면 entity:<id> 로만 묶는다), 별칭.
- * aliases 는 구조 추출 모델이 본다. otherNames 는 회사가 스스로 쓰는 다른 이름(공식 계정명, 하위 브랜드)으로,
- * 사실의 주체를 발행처와 맞출 때도 인정한다.
+ * aliases 는 구조 추출 모델이 본다. orgNames 는 회사가 소식을 낼 때 맨 앞에 쓰는 조직 이름(회사, 연구소, 팀)으로,
+ * 그 회사의 주제 페이지에서는 독자가 누구 얘기인지 알므로 생략할 수 있다. otherNames 는 회사의 다른 이름(공식 계정명, 하위 브랜드)이다.
+ * 이 이름들은 모두 어느 회사 얘기인지 알아보는 데 쓴다. 예를 들어 사실의 주체를 발행처와 맞출 때.
  */
-export const ENTITIES: Record<string, { name: string; displayTag: string | null; aliases: string[]; otherNames?: string[] }> = {
+export const ENTITIES: Record<string, { name: string; displayTag: string | null; aliases: string[]; orgNames?: string[]; otherNames?: string[] }> = {
   "world-labs": { name: "World Labs", displayTag: null, aliases: ["World Labs", "월드랩스"] },
   "thinking-machines": { name: "Thinking Machines Lab", displayTag: null, aliases: ["Thinking Machines", "씽킹머신즈"] },
   amd: { name: "AMD", displayTag: null, aliases: ["AMD", "Advanced Micro Devices"] },
-  openai: { name: "OpenAI", displayTag: "OpenAI", aliases: ["OpenAI", "오픈AI", "ChatGPT", "챗GPT", "Sora", "Codex", "GPT"], otherNames: ["OpenAI Developers"] },
-  anthropic: { name: "Anthropic", displayTag: "Anthropic", aliases: ["Anthropic", "앤트로픽", "Claude", "클로드"], otherNames: ["Claude Code"] },
-  google: { name: "Google", displayTag: "Google", aliases: ["Google", "구글", "DeepMind", "딥마인드", "Gemini", "제미나이"], otherNames: ["Google DeepMind", "Google Research", "Google AI", "Google Labs", "Google Cloud"] },
-  deepseek: { name: "DeepSeek", displayTag: "DeepSeek", aliases: ["DeepSeek", "딥시크"] },
-  qwen: { name: "알리바바 Qwen", displayTag: null, aliases: ["Qwen", "큐웬", "알리바바"], otherNames: ["Qwen Team", "Alibaba", "Alibaba Cloud", "알리바바클라우드"] },
-  kimi: { name: "Kimi / Moonshot AI", displayTag: null, aliases: ["Kimi", "키미", "Moonshot", "문샷"], otherNames: ["Moonshot AI"] },
-  minimax: { name: "MiniMax", displayTag: null, aliases: ["MiniMax", "미니맥스"] },
-  zhipu: { name: "Zhipu GLM", displayTag: null, aliases: ["Zhipu", "즈푸", "GLM", "Z.ai"], otherNames: ["Zhipu AI"] },
-  xai: { name: "xAI", displayTag: "xAI", aliases: ["xAI", "Grok", "그록"], otherNames: ["SpaceXAI"] },
-  meta: { name: "Meta", displayTag: "Meta", aliases: ["Meta", "메타", "Llama", "라마"], otherNames: ["Meta AI", "AI at Meta"] },
-  microsoft: { name: "Microsoft", displayTag: "Microsoft", aliases: ["Microsoft", "마이크로소프트", "MS", "Copilot", "코파일럿"], otherNames: ["Microsoft Research", "Microsoft AI"] },
-  nvidia: { name: "NVIDIA", displayTag: null, aliases: ["NVIDIA", "엔비디아"] },
-  "hugging-face": { name: "Hugging Face", displayTag: "Hugging Face", aliases: ["Hugging Face", "허깅페이스"], otherNames: ["HuggingFace"] },
-  cursor: { name: "Cursor", displayTag: null, aliases: ["Cursor", "커서", "Anysphere"] },
-  openrouter: { name: "OpenRouter", displayTag: null, aliases: ["OpenRouter", "오픈라우터"] },
+  openai: { name: "OpenAI", displayTag: "OpenAI", aliases: ["OpenAI", "오픈AI", "ChatGPT", "챗GPT", "Sora", "Codex", "GPT"], orgNames: ["OpenAI"], otherNames: ["OpenAI Developers"] },
+  anthropic: { name: "Anthropic", displayTag: "Anthropic", aliases: ["Anthropic", "앤트로픽", "Claude", "클로드"], orgNames: ["Anthropic"], otherNames: ["Claude Code"] },
+  google: { name: "Google", displayTag: "Google", aliases: ["Google", "구글", "DeepMind", "딥마인드", "Gemini", "제미나이"], orgNames: ["Google DeepMind", "Google Research", "Google", "DeepMind", "구글"], otherNames: ["Google AI", "Google Labs", "Google Cloud"] },
+  deepseek: { name: "DeepSeek", displayTag: "DeepSeek", aliases: ["DeepSeek", "딥시크"], orgNames: ["DeepSeek", "딥시크"] },
+  qwen: { name: "알리바바 Qwen", displayTag: null, aliases: ["Qwen", "큐웬", "알리바바"], orgNames: ["알리바바", "알리바바클라우드", "Qwen Team", "Qwen", "Alibaba"], otherNames: ["Alibaba Cloud"] },
+  kimi: { name: "Kimi / Moonshot AI", displayTag: null, aliases: ["Kimi", "키미", "Moonshot", "문샷"], orgNames: ["Moonshot AI", "문샷", "Kimi"] },
+  minimax: { name: "MiniMax", displayTag: null, aliases: ["MiniMax", "미니맥스"], orgNames: ["MiniMax"] },
+  zhipu: { name: "Zhipu GLM", displayTag: null, aliases: ["Zhipu", "즈푸", "GLM", "Z.ai"], orgNames: ["즈푸", "Zhipu AI", "Z.ai"], otherNames: ["Zhipu"] },
+  xai: { name: "xAI", displayTag: "xAI", aliases: ["xAI", "Grok", "그록"], orgNames: ["SpaceX Super Intelligence", "SpaceXAI", "SpaceXSI", "xAI"], otherNames: ["Grok Bot"] },
+  meta: { name: "Meta", displayTag: "Meta", aliases: ["Meta", "메타", "Llama", "라마"], orgNames: ["Meta Superintelligence Labs", "Meta AI", "Meta"], otherNames: ["AI at Meta", "Muse"] },
+  microsoft: { name: "Microsoft", displayTag: "Microsoft", aliases: ["Microsoft", "마이크로소프트", "MS", "Copilot", "코파일럿"], orgNames: ["Microsoft Research", "Microsoft AI", "Microsoft", "마이크로소프트"] },
+  nvidia: { name: "NVIDIA", displayTag: null, aliases: ["NVIDIA", "엔비디아"], orgNames: ["NVIDIA", "엔비디아"] },
+  "hugging-face": { name: "Hugging Face", displayTag: "Hugging Face", aliases: ["Hugging Face", "허깅페이스"], orgNames: ["Hugging Face", "HuggingFace"] },
+  cursor: { name: "Cursor", displayTag: null, aliases: ["Cursor", "커서", "Anysphere"], orgNames: ["Cursor"] },
+  openrouter: { name: "OpenRouter", displayTag: null, aliases: ["OpenRouter", "오픈라우터"], orgNames: ["OpenRouter"] },
   naver: { name: "네이버 HyperCLOVA X", displayTag: "네이버", aliases: ["네이버", "NAVER", "하이퍼클로바X", "HyperCLOVA X", "클로바"], otherNames: ["네이버클라우드", "NAVER Cloud", "NAVER D2"] },
   kakao: { name: "카카오", displayTag: "카카오", aliases: ["카카오", "Kakao", "카나나", "Kanana"], otherNames: ["카카오브레인", "카카오 테크"] },
   "lg-ai": { name: "LG AI연구원 EXAONE", displayTag: "LG AI연구원", aliases: ["LG AI연구원", "LG AI Research", "엑사원", "EXAONE"] },

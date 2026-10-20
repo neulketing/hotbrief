@@ -3,20 +3,8 @@
 // You can also switch per step with environment variables (PREFILTER_MODEL, SCORE_MODEL…) or on the admin "Models" page.
 // HotBrief US English edition (l10n/en-US): the original site/models.ts plus a Gemini (OpenAI-compatible) preset.
 
-export interface ModelPreset {
-  service: string;
-  model: string;
-  baseUrlEnv: string;
-  apiKeyEnv: string;
-  /** Extra request fields, e.g. turning reasoning off for short structured tasks. */
-  extra?: Record<string, unknown>;
-  /** Extra output room (tokens) for a reasoning model, added to each step's own budget. default uses LLM_REASONING_TOKENS. */
-  reasoningTokens?: number;
-  /** The API supports JSON mode. */
-  jsonMode: boolean;
-  /** Can read images. */
-  vision?: boolean;
-}
+import type { ModelPreset } from "@aihot/contracts/site-config";
+export type { ModelPreset } from "@aihot/contracts/site-config";
 
 /** Named model examples (each needs its own key). Delete the ones you don't use. */
 export const PRESETS: Record<string, ModelPreset> = {
@@ -25,10 +13,11 @@ export const PRESETS: Record<string, ModelPreset> = {
     service: "zhipu", model: "glm-5.3-flash", baseUrlEnv: "ZHIPU_BASE_URL", apiKeyEnv: "ZHIPU_API_KEY",
     extra: { thinking: { type: "enabled" }, reasoning_effort: "low" }, jsonMode: true, vision: true,
   },
-  // The scorer's parameters for glm-5.3-flash (score calls; temperature 1 is set per call).
+  // The scorer's parameters for glm-5.3-flash: temperature 1 with high reasoning, up to 180 s per call.
   "glm-5.3-flash-selection": {
     service: "zhipu", model: "glm-5.3-flash", baseUrlEnv: "ZHIPU_BASE_URL", apiKeyEnv: "ZHIPU_API_KEY",
     extra: { thinking: { type: "enabled", clear_thinking: false }, reasoning_effort: "high", top_p: 0.95 }, jsonMode: true, vision: true,
+    scoreCall: { temperature: 1, maxTokens: 65_536, timeoutMs: 180_000 },
   },
   // DeepSeek Flash reasons by default; structured tasks switch it off. deepseek-flash-think keeps it on,
   // with room in the output for the reasoning.

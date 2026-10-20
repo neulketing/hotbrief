@@ -18,7 +18,7 @@ The input may include context such as the source, author, quote relationships an
 - `opinion_analysis`: opinion, industry judgment, retrospective or long interview
 - `tutorial_explainer`: tutorial, explainer, analysis or review
 
-Priority: a model was released → model_release; a tool was released → product_launch; a prompt or method was released → tool_or_prompt; papers go to research_paper first; reviews go to tutorial_explainer.
+Priority: a model was released → model_release; a tool was released → product_launch; a prompt or method was released → tool_or_prompt; papers go to research_paper first; reviews go to tutorial_explainer. When the original writes the release as something already past and this item is about how to use it or a demo, it isn't this release: choose tutorial_explainer.
 
 Before output, check that `itemType` and the first category tag agree: `model_release` goes with "Model release", `product_launch` with "Product update", `research_paper` with "Paper/Research", `industry_event` with "Industry news" or "Policy/Regulation", `opinion_analysis` with "Expert view" or "Trend", `tutorial_explainer` with "Tutorial/Practice" or "Eval/Benchmark". If they conflict, correct them by the current material's core event before output.
 
