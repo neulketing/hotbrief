@@ -1,5 +1,5 @@
 diff --git a/apps/api/src/routes/admin-auth.ts b/apps/api/src/routes/admin-auth.ts
-index 9826e5b..2f0fcc3 100644
+index a1d38f6..94f41ad 100644
 --- a/apps/api/src/routes/admin-auth.ts
 +++ b/apps/api/src/routes/admin-auth.ts
 @@ -60,7 +60,7 @@ export function adminHandler(fn: AdminHandler) {
@@ -11,7 +11,7 @@ index 9826e5b..2f0fcc3 100644
        }
        if ((error as { statusCode?: number }).statusCode === 400 || error instanceof SyntaxError) {
          return sendProblem(req, reply, { status: 400, code: "invalid_request", detail: String((error as Error).message).slice(0, 300) });
-@@ -132,9 +132,9 @@ export function registerAdminAuth(app: FastifyInstance) {
+@@ -140,9 +140,9 @@ export function registerAdminAuth(app: FastifyInstance) {
        reply.header("Set-Cookie", [cookie(SESSION_COOKIE, token, SESSION_DAYS * 86400, secure()), cookie(STATE_COOKIE, "", 0, secure())]);
        return reply.redirect(returnTo, 302);
      } catch (error) {
@@ -3086,10 +3086,10 @@ index ba66046..bd3730b 100644
          </nav>
        </footer>
 diff --git a/apps/web/app/routes/admin-login.tsx b/apps/web/app/routes/admin-login.tsx
-index 74fac2c..71e67c9 100644
+index fed7469..bfb5ba0 100644
 --- a/apps/web/app/routes/admin-login.tsx
 +++ b/apps/web/app/routes/admin-login.tsx
-@@ -8,9 +8,9 @@ import { Wordmark } from "@aihot/site/brand/Logo.tsx";
+@@ -9,9 +9,9 @@ import { Wordmark } from "@aihot/site/brand/Logo.tsx";
  import { buttonClass } from "../components/ui/Controls";
  
  const ERRORS: Record<string, string> = {
@@ -3102,8 +3102,8 @@ index 74fac2c..71e67c9 100644
  };
  
  export async function loader({ request }: Route.LoaderArgs) {
-@@ -20,7 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
-   return { returnTo: returnTo.startsWith("/admin") ? returnTo : "/admin", error: url.searchParams.get("error"), ...options };
+@@ -24,7 +24,7 @@ export async function loader({ request }: Route.LoaderArgs) {
+   return { returnTo: target, error: url.searchParams.get("error"), ...options };
  }
  
 -export const meta: Route.MetaFunction = () => [{ title: `登录 · ${SITE.name} 后台` }, { name: "robots", content: "noindex, nofollow" }];
@@ -3111,7 +3111,7 @@ index 74fac2c..71e67c9 100644
  
  export const headers: Route.HeadersFunction = () => ({ "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" });
  
-@@ -32,12 +32,12 @@ export default function AdminLogin() {
+@@ -36,12 +36,12 @@ export default function AdminLogin() {
        <div className="w-full max-w-[360px]">
          <div className="flex items-center justify-center gap-2">
            <Wordmark size={28} className="text-ink" />
@@ -3126,7 +3126,7 @@ index 74fac2c..71e67c9 100644
            </label>
            <input
              id="password"
-@@ -54,17 +54,17 @@ export default function AdminLogin() {
+@@ -58,17 +58,17 @@ export default function AdminLogin() {
              </p>
            )}
            <button type="submit" className={`${buttonClass("primary", "lg")} mt-5 w-full`}>
@@ -7813,6 +7813,28 @@ index 0b91358..4923409 100644
      `【标题】\n${a.title.trim()}`,
      `【完整正文】\n${body.length > MAX_BODY_CHARS ? body.slice(0, MAX_BODY_CHARS) : body}`,
    ].join("\n\n");
+diff --git a/packages/backend/src/editorial/wording.ts b/packages/backend/src/editorial/wording.ts
+index 7e57c92..171ed89 100644
+--- a/packages/backend/src/editorial/wording.ts
++++ b/packages/backend/src/editorial/wording.ts
+@@ -9,7 +9,7 @@ export interface ReaderCopy {
+   reasonZh: string | null;
+ }
+ 
+-const FIELDS: Array<[keyof ReaderCopy, string]> = [["titleZh", "标题"], ["summaryZh", "摘要"], ["reasonZh", ITEM_COPY.reasonLabel]];
++const FIELDS: Array<[keyof ReaderCopy, string]> = [["titleZh", "Title"], ["summaryZh", "Summary"], ["reasonZh", ITEM_COPY.reasonLabel]];
+ 
+ /**
+  * Every use of a word of the list in a copy, each as a line the model can act on: where, the words around it,
+@@ -22,7 +22,7 @@ export function wordingProblems(copy: ReaderCopy): string[] {
+     if (!text) continue;
+     for (const [pattern, fix] of READER_WORDING) {
+       for (const hit of text.matchAll(new RegExp(pattern.source, `${pattern.flags.replace("g", "")}g`))) {
+-        problems.push(`${name}用了“${hit[0]}”（“${text.slice(Math.max(0, hit.index - 8), hit.index + hit[0].length + 8)}”）：${fix}`);
++        problems.push(`${name} uses “${hit[0]}” (“${text.slice(Math.max(0, hit.index - 8), hit.index + hit[0].length + 8)}”): ${fix}`);
+       }
+     }
+   }
 diff --git a/packages/backend/src/editorial/writing.ts b/packages/backend/src/editorial/writing.ts
 index ae12367..3e4ad98 100644
 --- a/packages/backend/src/editorial/writing.ts
@@ -8791,10 +8813,10 @@ index 1516793..caf02e9 100644
    if (Number.isFinite(t)) return new Date(t);
    // RFC 822 variants with Chinese weekday or odd zones
 diff --git a/packages/backend/src/sources/web-list.ts b/packages/backend/src/sources/web-list.ts
-index 4d54291..37c510e 100644
+index e3b51e9..66e09e1 100644
 --- a/packages/backend/src/sources/web-list.ts
 +++ b/packages/backend/src/sources/web-list.ts
-@@ -181,7 +181,7 @@ export function fromHtml(html: string, base: string, source: SourceRow): Candida
+@@ -183,7 +183,7 @@ export function fromHtml(html: string, base: string, source: SourceRow): Candida
  const DATE_HEADING = /^(?:[^\d:：]{1,12}[:：])?\s*(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/;
  
  /** The day a date heading names, at midnight in the source's offset (Date.parse would read "时间: …" in the host's zone). */

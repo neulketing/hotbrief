@@ -1,0 +1,913 @@
+diff --git a/tests/agent-public.test.ts b/tests/agent-public.test.ts
+index a212439..464ce45 100644
+--- a/tests/agent-public.test.ts
++++ b/tests/agent-public.test.ts
+@@ -38,7 +38,7 @@ test('Agent discovery uses the configured identity, address and categories', asy
+ test('empty answers are explicit and fixed reports include their flash section', () => {
+   const query = {mode:'selected',window:'24h',category:null,limit:10} as const;
+   const res = {schemaVersion:1,query:{...query,by:'timeline',q:null,ordering:'timelineDesc'},items:[],page:{count:0,hasMore:false,nextCursor:null}} as const;
+-  assert.match(latestAnswer({...res,items:[]},query),/没有符合条件/);
++  assert.match(latestAnswer({...res,items:[]},query),/No matching/);
+   const text = dailyAnswer({date:'2026-09-30',windowStart:'2026-09-29T00:00:00Z',windowEnd:'2026-09-30T00:00:00Z',links:{aihot:'https://example.org/daily/2026-09-30'},lead:null,sections:[],flashes:[{title:'FLASH-MARKER',publishedAt:'2026-09-29T01:00:00Z',source:{name:'Source'},links:{aihot:'https://example.org/items/1',original:'https://source.example/1'}}]},'http');
+-  assert.ok(text.includes('FLASH-MARKER'));assert.ok(text.includes('不可信外部资料'));
++  assert.ok(text.includes('FLASH-MARKER'));assert.ok(text.includes('untrusted outside material'));
+ });
+diff --git a/tests/analyze.test.ts b/tests/analyze.test.ts
+index 11c74aa..21b2e1f 100644
+--- a/tests/analyze.test.ts
++++ b/tests/analyze.test.ts
+@@ -14,6 +14,7 @@ import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
+ import { compactAnswerFirstSummary, enforceIdentity, MAX_BODY_CHARS, parseTranslateOutput } from "@aihot/backend/editorial/writing";
+ import { READER_WORDING } from "@aihot/industry/wording";
+ import { ITEM_TYPES } from "@aihot/industry/taxonomy";
++import { ITEM_COPY } from "@aihot/site";
+ 
+ const T = tag();
+ const SOURCE = `test-analyze-${T}`;
+@@ -21,14 +22,14 @@ const X_SOURCE = `test-analyze-x-${T}`;
+ 
+ interface Req { step: AnalysisStep; marker: string; user: string }
+ const requests: Req[] = [];
+-const MARKERS = ["CLEAR", "RESCUE", "LOW", "OFFTOPIC", "BARE", "VAGUE", "THIN", "SENSITIVE", "推文", "WORDY", "REFUSAL", "RENUMBER", "UNMENDED"];
++const MARKERS = ["CLEAR", "RESCUE", "LOW", "OFFTOPIC", "BARE", "VAGUE", "THIN", "SENSITIVE", "TWEET", "WORDY", "REFUSAL", "RENUMBER", "UNMENDED"];
+ // The scores sit a few points around the pack's T1 threshold and understand floor, so each case means
+ // the same after a site recalibrates them: selected when the two add up to 2 × T1, written like a
+ // selected item when they add up to more than 2 × FLOOR, translated otherwise.
+ const T1 = tierThreshold("T1")!;
+ const FLOOR = UNDERSTAND_FLOOR;
+ const scoreAnswers: Record<string, number[]> = {
+-  CLEAR: [T1 + 3, T1 - 1], RESCUE: [FLOOR + 1, FLOOR], LOW: [FLOOR, FLOOR - 1], THIN: [T1, T1], SENSITIVE: [T1, T1], 推文: [FLOOR, FLOOR],
++  CLEAR: [T1 + 3, T1 - 1], RESCUE: [FLOOR + 1, FLOOR], LOW: [FLOOR, FLOOR - 1], THIN: [T1, T1], SENSITIVE: [T1, T1], TWEET: [FLOOR, FLOOR],
+   BARE: [FLOOR - 2, FLOOR - 4], VAGUE: [T1, T1 + 2], WORDY: [T1, T1], REFUSAL: [T1, T1], RENUMBER: [T1, T1], UNMENDED: [T1, T1],
+ };
+ 
+@@ -58,7 +59,7 @@ const provider = await stub((_hit, req) => {
+     if (marker === "SENSITIVE") return new Reply(400, { contentFilter: [{ level: 1, role: "user" }], error: { code: "1301", message: "系统检测到输入或生成内容可能包含不安全或敏感内容" } });
+     return answer({ itemType: "model_release", authorRole: "principal", tags: ["模型发布", "开源", "Agent", "不存在的标签"], editorialJudgment: `理由 ${marker}`, titleZh: `理解标题 ${marker}`, summaryZh: `理解摘要 ${marker}。第二句补充一个关键数字。` });
+   }
+-  if (step === "structure") return answer({ category: "ai-models", tags: ["模型发布", "推理"], subjects: ["anthropic", "unknown-co"], scope: "single", fact: { title: `事实 ${marker}`, subject: "某公司", action: "发布", object: "模型", occurredAt: null, evidence: "a lab released a model", conditions: [] } });
++  if (step === "structure") return answer({ category: "ai-models", /* HotBrief en-US: the edition's tags */ tags: ["Model release", "Reasoning"], subjects: ["anthropic", "unknown-co"], scope: "single", fact: { title: `事实 ${marker}`, subject: "某公司", action: "发布", object: "模型", occurredAt: null, evidence: "a lab released a model", conditions: [] } });
+   return answer(`title_zh: 翻译标题 ${marker}\nsummary_zh: 翻译摘要 ${marker}。第二句补充影响。`);
+ });
+ pointModels(provider.url);
+@@ -95,7 +96,7 @@ test("a selected item: prefilter, two scores, the content understanding and the
+   const r = await row(id);
+   assert.deepEqual([r.title_zh, r.reason_zh, r.category, r.receipt_ids.length], ["理解标题 CLEAR", "理由 CLEAR", "ai-models", 5]);
+   // Failure case: the writer's independent labels contradict the structural category.
+-  assert.deepEqual(r.tags, ["模型发布", "推理", "Anthropic"], "category and tags come from the same structural judgement, plus the verified subject tag");
++  assert.deepEqual(r.tags, ["Model release", "Reasoning", "Anthropic"], "category and tags come from the same structural judgement, plus the verified subject tag");
+   assert.deepEqual(r.subjects, ["anthropic"]);
+   assert.deepEqual([r.output.writer, r.output.itemType, r.output.prefilter.label, r.output.fact.title], ["understand", "model_release", "PASS", "事实 CLEAR"]);
+   assert.equal(r.output.scope, "single");
+@@ -114,7 +115,7 @@ test("a word the site keeps from readers goes back once to be changed; copy with
+     const r = await row(id);
+     assert.deepEqual([r.title_zh, r.reason_zh], ["标题里换了说法 WORDY", "理由里换了说法 WORDY"], "the mended copy is stored");
+     const sent = requests.find((q) => q.marker === "WORDY" && q.step === "wording")!;
+-    assert.ok(sent.user.includes("标题用了“禁用词”") && sent.user.includes("推荐理由用了“禁用词”"), "each use named");
++    assert.ok(sent.user.includes("Title uses “禁用词”") && sent.user.includes(`${ITEM_COPY.reasonLabel} uses “禁用词”`), "each use named");
+     assert.ok(!requests.some((q) => q.step === "wording" && q.marker !== "WORDY"), "the other items' copy uses none");
+   } finally {
+     (READER_WORDING as Array<readonly [RegExp, string]>).pop();
+@@ -179,7 +180,7 @@ test("a near-selected item is written like a selected one; below the floor it is
+   const low = await analyzeArticle(lowId);
+   assert.deepEqual([low!.output!.selected, low!.output!.titleZh, low!.output!.reasonZh], [false, "翻译标题 LOW", null]);
+   assert.deepEqual(calls("LOW").sort(), ["prefilter", "score", "score", "structure", "summarize"]);
+-  assert.deepEqual((await row(lowId)).tags, ["模型发布", "推理", "Anthropic"], "structure tags");
++  assert.deepEqual((await row(lowId)).tags, ["Model release", "Reasoning", "Anthropic"], "structure tags");
+ });
+ 
+ test("the prefilter's BLOCK stops everything; UNKNOWN with material goes on like PASS", async () => {
+@@ -216,23 +217,25 @@ test("a feed summary alone: the article page is fetched first, then the whole ar
+ 
+ test("a short post in Chinese is its own copy; a content-filter refusal is translated instead", async () => {
+   // The tag rides as a hashtag, which the language check strips.
+-  const text = `推文：今天把智能体接进了工作流，效果不错。#t${T}`;
++  // HotBrief en-US: a short post in the reader's language (English) is its own copy; TWEET is the stub's marker.
++  const text = `TWEET: Hooked an agent into our workflow today, and it works well. #t${T}`;
+   const { articleId } = await upsertMaterial({
+     sourceId: X_SOURCE, url: `https://x.com/test/status/1${Date.now()}`, title: text, via: "fetch", publishedAt: new Date(),
+     xPost: { tweetId: `1${Date.now()}`, authorName: "测试", handle: "test", text },
+   });
+   const post = await analyzeArticle(articleId);
+   assert.deepEqual([post!.output!.titleZh, post!.output!.summaryZh], [text, text]);
+-  assert.ok(!calls("推文").includes("summarize"), "no translation call");
++  assert.ok(!calls("TWEET").includes("summarize"), "no translation call");
+   const sensitive = await analyzeArticle(await article("SENSITIVE"));
+   assert.deepEqual([sensitive!.output!.selected, sensitive!.output!.titleZh], [true, "翻译标题 SENSITIVE"]);
+   assert.deepEqual(calls("SENSITIVE").filter((s) => s === "understand" || s === "summarize"), ["understand", "summarize"]);
+ });
+ 
+ test("guards: a company the input does not name is not written in; long summaries are cut at sentences", () => {
+-  const input = { title: "某实验室发布新模型", text: "某实验室发布了一个新模型，参数规模和价格都有说明。", sourceKind: "rss" };
+-  const guarded = enforceIdentity(input, { titleZh: "OpenAI 发布新模型", summaryZh: "某实验室发布新模型。" });
+-  assert.deepEqual([guarded.titleZh, guarded.summaryZh, guarded.identityGuard.outcome], ["某实验室发布新模型", "某实验室发布新模型。", "fallback"]);
++  // HotBrief en-US: the fallback title is the original only when it is in the reader's language, so the input is English.
++  const input = { title: "A lab releases a new model", text: "A lab released a new model and gave its size and price.", sourceKind: "rss" };
++  const guarded = enforceIdentity(input, { titleZh: "OpenAI releases a new model", summaryZh: "A lab released a new model." });
++  assert.deepEqual([guarded.titleZh, guarded.summaryZh, guarded.identityGuard.outcome], ["A lab releases a new model", "A lab released a new model.", "fallback"]);
+   // The identity lexicon: a Chinese rendering of a company the input names in English is no invention.
+   const alibaba = { title: "Alibaba ships a new coding model", text: "Alibaba released a coding model with pricing details.", sourceKind: "rss" };
+   assert.equal(enforceIdentity(alibaba, { titleZh: "阿里巴巴发布编程模型", summaryZh: "阿里巴巴发布了编程模型并公布价格。" }).identityGuard.outcome, "pass");
+diff --git a/tests/architecture.test.ts b/tests/architecture.test.ts
+index 5800a4e..67978f7 100644
+--- a/tests/architecture.test.ts
++++ b/tests/architecture.test.ts
+@@ -171,11 +171,15 @@ test("every environment variable the code reads is listed in a template, and eve
+ const convertsBeijingTime = (line: string) =>
+   /(?<![\d.])8 ?\* ?(?:3_?600|60 ?\* ?60)/.test(line)
+   || (line.includes("+08:00") && line.includes("${"))
+-  || /(?:timeZone:|AT TIME ZONE) ?["']Asia\/Shanghai/.test(line);
++  || /(?:timeZone:|AT TIME ZONE) ?["']Asia\/Shanghai/.test(line)
++  // HotBrief en-US: the site clock is UTC, so its conversions are written as 0 * 3600 and +00:00 (a "UTC" Intl zone is
++  // also how plain calendar keys are formatted, so it is not read as a conversion)
++  || /(?<![\d.])0 ?\* ?(?:3_?600|60 ?\* ?60)/.test(line)
++  || (line.includes("+00:00") && line.includes("${"));
+ const CONVERTS_BEIJING_TIME: Record<string, string> = {
+   "packages/contracts/src/time.ts": "the conversions themselves",
+   "packages/backend/src/editorial/analyze.ts": "the score input keeps the form its prompt was tuned on (whole seconds without .000)",
+-  "packages/backend/src/editorial/writing.ts": "a beijingDate written out, left to the next change of editorial/",
++  // HotBrief en-US: writing.ts formats its date in the "UTC" Intl zone, the site clock, which converts nothing
+   "modules/codex-reset/web/admin-monitor.tsx": "sends a Beijing date and time typed in the admin with its zone, to the minute",
+   "site/changelog/FeatureRelease.tsx": "a changelog entry's Beijing date and time with its zone, to the minute, in dateTime",
+   "clients/decisions/decisions.mjs": "installed as one file away from the repository, so it cannot import time.ts",
+diff --git a/tests/category-corrections.test.ts b/tests/category-corrections.test.ts
+index 101b800..e65f53b 100644
+--- a/tests/category-corrections.test.ts
++++ b/tests/category-corrections.test.ts
+@@ -14,10 +14,11 @@ import { QUEUES, getBoss, stopBoss } from "@aihot/backend/jobs/queue";
+ 
+ after(async () => { await stopBoss(); await closeDb(); });
+ 
++// HotBrief en-US: tags and section labels are the edition's (industry/taxonomy.ts CATEGORY_TAGS and CATEGORIES.section)
+ test("new models require a launch classification as well as an official, new model event", () => {
+-  const base = { category: "ai-models", tags: ["模型发布"], authority: 0, previous: null,
++  const base = { category: "ai-models", tags: ["Model release"], authority: 0, previous: null,
+     entry: { sourceId: "official", firstParty: true } } as EditionEntry;
+-  const rows = [base, { ...base, tags: ["评测/基准"] }, { ...base, tags: ["产品更新"] },
++  const rows = [base, { ...base, tags: ["Eval/Benchmark"] }, { ...base, tags: ["Product update"] },
+     { ...base, category: "ai-products" }, { ...base, authority: 3 },
+     { ...base, previous: { key: "2026-09-30", title: "已报过的发布" } }, { ...base, tags: [] }];
+   assert.equal(dailyMetrics(rows).modelsReleased, 1);
+@@ -30,20 +31,20 @@ test("category corrections revise every standard report atomically without selec
+   await sql`INSERT INTO sources (id,name,kind,tier,participation_mode) VALUES (${sourceId},'Category fixture','rss','T1','editorial')`;
+   const { articleId } = await upsertMaterial({ sourceId, url: `https://example.com/${sourceId}`, title: "开源推理工具", bodyText: "工具正文", bodyStatus: "ok", via: "fetch", publishedAt: new Date() });
+   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,tags,title_zh,summary_zh,score,selected)
+-    VALUES (${articleId},1,'rule','pass','ai-models',ARRAY['模型发布','DeepSeek'],'开源推理工具','冻结摘要',88,true)`;
++    VALUES (${articleId},1,'rule','pass','ai-models',ARRAY['Model release','DeepSeek'],'开源推理工具','冻结摘要',88,true)`;
+   const [story] = await sql`INSERT INTO stories (public_id,title) VALUES (gen_random_uuid(),'工具事件') RETURNING id`;
+   const [fact] = await sql`INSERT INTO facts (public_id,title,story_id) VALUES (${`f-${tag()}`},'工具发布',${story!.id}) RETURNING id`;
+   await sql`INSERT INTO fact_articles (fact_id,article_id,role) VALUES (${fact!.id},${articleId},'report')`;
+   await publishArticle(articleId, { releasedAt: new Date() });
+   const entry = { itemId: articleId, title: "冻结标题", summary: "冻结摘要", sourceId, firstParty: true, role: "官方" };
+   const contents = [
+-    { kind: "daily", key: "2097-01-02", content: { leadItemId: articleId, lead: { title: "冻结头条" }, highlights: [articleId], flashes: [], sections: [{ label: "模型发布/更新", items: [entry] }], metrics: { totalEvents: 1, modelsReleased: 1 } } },
+-    ...(["weekly", "monthly"] as const).map(kind => ({ kind, key: kind === "weekly" ? "2097-W01" : "2097-01", content: { headline: "冻结头条", leadItemId: articleId, storyOrder: [articleId], overview: "保留总述", themes: [{ heading: "模型发布/更新", summary: "旧模型导读", storyRefs: [entry] }], metrics: { totalStories: 1 } } })),
++    { kind: "daily", key: "2097-01-02", content: { leadItemId: articleId, lead: { title: "冻结头条" }, highlights: [articleId], flashes: [], sections: [{ label: "Model releases and updates", items: [entry] }], metrics: { totalEvents: 1, modelsReleased: 1 } } },
++    ...(["weekly", "monthly"] as const).map(kind => ({ kind, key: kind === "weekly" ? "2097-W01" : "2097-01", content: { headline: "冻结头条", leadItemId: articleId, storyOrder: [articleId], overview: "保留总述", themes: [{ heading: "Model releases and updates", summary: "旧模型导读", storyRefs: [entry] }], metrics: { totalStories: 1 } } })),
+   ];
+   for (const r of contents) await sql`INSERT INTO reports (kind,key,window_start,window_end,content,generated_at,origin)
+     VALUES (${r.kind},${r.key},now(),now(),${sql.json(r.content as never)},now(),'imported')`;
+   const [before] = await sql`SELECT selected,seat,score,visible_after,selected_ready_at FROM publications WHERE article_id=${articleId}`;
+-  const change = (actor: string) => overrideFields(articleId, { fields: { category: "ai-products", tags: ["开源/仓库", "DeepSeek"] }, version: 0, reason: "工具不是模型" }, actor);
++  const change = (actor: string) => overrideFields(articleId, { fields: { category: "ai-products", tags: ["Open source/Repo", "DeepSeek"] }, version: 0, reason: "工具不是模型" }, actor);
+   await sql.unsafe(`CREATE FUNCTION reject_category_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+     IF NEW.actor = 'reject-category' THEN RAISE EXCEPTION 'category audit rejected'; END IF; RETURN NEW; END $$`);
+   await sql.unsafe("CREATE TRIGGER reject_category_audit BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION reject_category_audit()");
+@@ -62,12 +63,12 @@ test("category corrections revise every standard report atomically without selec
+     const c = saved!.content;
+     assert.equal(c.leadItemId, articleId);
+     if (r.kind === "daily") {
+-      assert.deepEqual(c.sections, [{ label: "产品发布/更新", items: [entry] }]);
++      assert.deepEqual(c.sections, [{ label: "Product launches and updates", items: [entry] }]);
+       assert.equal(c.metrics.modelsReleased, 0);
+       assert.deepEqual(c.highlights, [articleId]);
+       assert.equal(c.lead.title, "冻结头条");
+     } else {
+-      assert.deepEqual(c.themes, [{ heading: "产品发布/更新", summary: null, storyRefs: [entry] }]);
++      assert.deepEqual(c.themes, [{ heading: "Product launches and updates", summary: null, storyRefs: [entry] }]);
+       assert.deepEqual(c.storyOrder, [articleId]);
+       assert.equal(c.overview, "保留总述");
+     }
+@@ -76,6 +77,6 @@ test("category corrections revise every standard report atomically without selec
+   assert.equal((await sql`SELECT count(*)::int AS n FROM pgboss.job WHERE name=${QUEUES.digest}`)[0]!.n, digestCount);
+   await overrideFields(articleId, { fields: {}, clear: ["category", "tags"], version: 1, reason: "验证撤销纠错" }, "test-category");
+   const [restored] = await sql`SELECT content FROM reports WHERE kind='daily' AND key='2097-01-02'`;
+-  assert.equal(restored!.content.sections[0].label, "模型发布/更新");
++  assert.equal(restored!.content.sections[0].label, "Model releases and updates");
+   assert.equal(restored!.content.metrics.modelsReleased, 1);
+ });
+diff --git a/tests/daily-report-alerts.test.ts b/tests/daily-report-alerts.test.ts
+index 6e2802a..5889ce4 100644
+--- a/tests/daily-report-alerts.test.ts
++++ b/tests/daily-report-alerts.test.ts
+@@ -6,7 +6,8 @@ import { closeDb, sql } from "@aihot/backend/db";
+ import { getBoss, stopBoss } from "@aihot/backend/jobs/queue";
+ import { checkAlerts, collectFindings } from "@aihot/backend/operations/alerts";
+ 
+-const at = (date: string, time = "10:00") => beijingAt(date, time).getTime();
++// HotBrief en-US: the daily edition comes out at 12:00 instead of 08:00, so every check runs four hours later.
++const at = (date: string, time = "14:00") => beijingAt(date, time).getTime();
+ const key = (date: string) => `report.daily:${date}`;
+ const daily = (keys: string[]) => keys.filter(k => k.startsWith("report.daily"));
+ async function report(date: string) {
+@@ -30,18 +31,18 @@ test("midnight preserves a missing edition; each date recovers only when its rep
+   result = await checkAlerts(at("2026-10-07"));
+   assert.deepEqual(daily(result.open).sort(), [key("2026-10-06"), key("2026-10-07")]);
+   await report("2026-10-07");
+-  result = await checkAlerts(at("2026-10-07", "10:10"));
++  result = await checkAlerts(at("2026-10-07", "14:10"));
+   assert.deepEqual(daily(result.sent), [`${key("2026-10-07")}:recovered`]);
+   assert.deepEqual(daily(result.open), [key("2026-10-06")]);
+   await report("2026-10-06");
+-  assert.deepEqual(daily((await checkAlerts(at("2026-10-07", "10:20"))).sent), [`${key("2026-10-06")}:recovered`]);
+-  assert.deepEqual(daily((await checkAlerts(at("2026-10-07", "10:30"))).sent), []);
++  assert.deepEqual(daily((await checkAlerts(at("2026-10-07", "14:20"))).sent), [`${key("2026-10-06")}:recovered`]);
++  assert.deepEqual(daily((await checkAlerts(at("2026-10-07", "14:30"))).sent), []);
+ });
+ 
+ test("recent gap detection uses report activity and each edition's overdue time", async () => {
+   await sql`INSERT INTO job_runs(job,started_at,status) VALUES('reports.compose',${new Date(at("2026-10-05"))},'failed')`;
+   await report("2026-10-06");
+-  const findings = await collectFindings(at("2026-10-07", "09:59"));
++  const findings = await collectFindings(at("2026-10-07", "13:59"));
+   assert.deepEqual(daily(findings.map(f => f.key)), [key("2026-10-05")]);
+   await report("2026-09-01");
+   assert.deepEqual(daily((await collectFindings(at("2026-10-07"))).map(f => f.key)),
+@@ -64,7 +65,7 @@ test("open dates outlive disabled generation and restarts keep checking missing
+   assert.deepEqual(result.sent, [], "rechecking after the restart does not duplicate the reminder");
+   process.env.COLLECT_ENABLED = "false";
+   await report("2026-10-01");
+-  assert.ok((await checkAlerts(at("2026-10-07", "10:10"))).sent.includes(`${key("2026-10-01")}:recovered`));
++  assert.ok((await checkAlerts(at("2026-10-07", "14:10"))).sent.includes(`${key("2026-10-01")}:recovered`));
+ });
+ 
+ test("an edition still missing past the scan window is closed once instead of reminded forever", async () => {
+@@ -72,6 +73,6 @@ test("an edition still missing past the scan window is closed once instead of re
+   let result = await checkAlerts(at("2026-10-08"));
+   assert.ok(result.sent.includes(`${key("2026-10-01")}:expired`));
+   assert.ok(!result.open.includes(key("2026-10-01")));
+-  result = await checkAlerts(at("2026-10-08", "12:00"));
++  result = await checkAlerts(at("2026-10-08", "16:00"));
+   assert.ok(!result.sent.some(k => k.startsWith(key("2026-10-01"))));
+ });
+diff --git a/tests/extraction-consistency.test.ts b/tests/extraction-consistency.test.ts
+index de4a4fe..63e1aca 100644
+--- a/tests/extraction-consistency.test.ts
++++ b/tests/extraction-consistency.test.ts
+@@ -121,8 +121,8 @@ test("an audited presentation refresh previews and applies only the reviewed lay
+   presentationHtml = `<p>${body} The actual model price has changed.</p>`;
+   const semantic = await rerun(articleId, "presentation", "preview-wording", "test", { preview: true });
+   assert.ok(semantic && "ready" in semantic && !semantic.ready);
+-  assert.match(semantic.reason ?? "", /文字/);
+-  await assert.rejects(rerun(articleId, "presentation", "apply-wording", "test", { version: preview.version }), /预览|变化|文字/);
++  assert.match(semantic.reason ?? "", /text/);
++  await assert.rejects(rerun(articleId, "presentation", "apply-wording", "test", { version: preview.version }), /preview|changed|text/);
+ });
+ 
+ test("an audited RSS presentation refresh uses the source body without substituting the web-page wording", async () => {
+diff --git a/tests/feedback-email-ban.test.ts b/tests/feedback-email-ban.test.ts
+index bcce94d..1ee440c 100644
+--- a/tests/feedback-email-ban.test.ts
++++ b/tests/feedback-email-ban.test.ts
+@@ -47,7 +47,7 @@ test("email moderation does not block shared domains, anonymous security reports
+   const accepted = await submitFeedback({ ...base, email: "other-reader@example.com" });
+   assert.ok(accepted.id);
+   assert.ok((await submitFeedback({ ...base, content: base.content + " anonymous" })).id);
+-  await assert.rejects(banFeedbackEmail((await submitFeedback({ ...base, content: "no contact" })).id, "reason", "test"), /没有可封禁的邮箱/);
++  await assert.rejects(banFeedbackEmail((await submitFeedback({ ...base, content: "no contact" })).id, "reason", "test"), /no email to ban/);
+   const forged = { ...base, ip: "203.0.113.237", email: "victim@example.com" };
+   for (let i = 0; i < 20; i++) await submitFeedback(forged);
+   await assert.rejects(submitFeedback(forged), e => e instanceof FeedbackRejected && e.status === 429);
+diff --git a/tests/jina-listing.test.ts b/tests/jina-listing.test.ts
+index 48fa0f4..668fd0c 100644
+--- a/tests/jina-listing.test.ts
++++ b/tests/jina-listing.test.ts
+@@ -99,7 +99,7 @@ test("a listing parsed with selectors is read from Jina as rendered HTML, dates
+   assert.equal(run.status, "ok", run.error ?? "");
+   const [post] = await sql<{ title: string; published_at: Date; publication_time: string }[]>`SELECT title, published_at, publication_time FROM articles WHERE source_id = ${id}`;
+   assert.equal(post?.title, `Rendered ${T}`);
+-  assert.equal(post?.published_at.toISOString(), "2026-09-22T16:00:00.000Z");
++  assert.equal(post?.published_at.toISOString(), "2026-09-23T00:00:00.000Z"); // HotBrief en-US: a list date is read at +00:00
+   assert.equal(post?.publication_time, "2026-09-23");
+ });
+ 
+@@ -115,7 +115,7 @@ test("a JSON listing embedded in a page is read from Jina as rendered HTML", asy
+   const [post] = await sql<{ title: string; url: string; published_at: Date; publication_time: string }[]>`SELECT title, url, published_at, publication_time FROM articles WHERE source_id = ${id}`;
+   assert.equal(post?.title, `Embedded ${T}`);
+   assert.equal(post?.url, `https://example.org/articles/embedded-${T}`);
+-  assert.equal(post?.published_at.toISOString(), "2026-09-23T16:00:00.000Z");
++  assert.equal(post?.published_at.toISOString(), "2026-09-24T00:00:00.000Z"); // HotBrief en-US: a list date is read at +00:00
+   assert.equal(post?.publication_time, "2026-09-24");
+   assert.equal((await sql`SELECT 1 FROM receipts WHERE subject = ${`source:${id}`} AND service = 'jina'`).length, 1);
+ });
+diff --git a/tests/listings.test.ts b/tests/listings.test.ts
+index df9130b..f72ddf8 100644
+--- a/tests/listings.test.ts
++++ b/tests/listings.test.ts
+@@ -110,11 +110,12 @@ test("a changelog's date headings date its updates and are no articles themselve
+     SELECT url, title, published_at FROM articles WHERE source_id = ${CHANGELOG_SOURCE} ORDER BY published_at DESC, url`;
+   assert.deepEqual(
+     rows.map((r) => [decodeURIComponent(r.url.replace(/^.*#/, "#")), r.title.replace(` ${T}`, ""), r.published_at?.toISOString()]),
++    // HotBrief en-US: a date heading is midnight at the default source offset, -05:00
+     [
+-      ["#deepseek-v41-flash-发布", "DeepSeek-V4.1-Flash 发布", "2026-09-09T16:00:00.000Z"],
+-      ["#deepseek-v32", "DeepSeek-V3.2", "2025-11-30T16:00:00.000Z"],
+-      ["#deepseek-v32-speciale", "DeepSeek-V3.2-Speciale", "2025-11-30T16:00:00.000Z"],
+-      ["#deepseek-chat-4", "deepseek-chat", "2024-05-16T16:00:00.000Z"],
++      ["#deepseek-v41-flash-发布", "DeepSeek-V4.1-Flash 发布", "2026-09-10T05:00:00.000Z"],
++      ["#deepseek-v32", "DeepSeek-V3.2", "2025-12-01T05:00:00.000Z"],
++      ["#deepseek-v32-speciale", "DeepSeek-V3.2-Speciale", "2025-12-01T05:00:00.000Z"],
++      ["#deepseek-chat-4", "deepseek-chat", "2024-05-17T05:00:00.000Z"],
+     ],
+   );
+ });
+diff --git a/tests/page-metadata.standalone.test.ts b/tests/page-metadata.standalone.test.ts
+index 86885dd..6d3d817 100644
+--- a/tests/page-metadata.standalone.test.ts
++++ b/tests/page-metadata.standalone.test.ts
+@@ -73,16 +73,16 @@ test("ordinary feed pages remain indexable and normalize ignored parameters", as
+     const $ = await page(requested!);
+     assert.equal($("meta[name=robots]").attr("content"), undefined);
+     assert.equal($("link[rel=canonical]").attr("href"), `${web.origin}${canonical}`);
+-    if (canonical?.includes("page=2")) assert.match($("title").text(), /第 2 页/);
++    if (canonical?.includes("page=2")) assert.match($("title").text(), /Page 2/);
+   }
+ });
+ 
+ // Chinese readers search issues by the date as they write it ("10月4日 AI 新闻"), not by the key.
+-for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly", "周报", "9月28日—10月4日"], ["monthly", "月报", "2026年10月"]] as const) {
++for (const [kind, label, date] of [["daily", "Daily", "Oct 4"], ["weekly", "Weekly", "Sep 28–Oct 4"], ["monthly", "Monthly", "October 2026"]] as const) {
+   test(`${kind} issue metadata describes its visible lead while the permanent entry keeps its title`, async () => {
+     const r = report(kind);
+     const $ = await page(`/${kind}/${r.key}`);
+-    const title = `${withSubject(label)}｜${date}：${r.lead!.title}`;
++    const title = `${withSubject(label)} | ${date}: ${r.lead!.title}`;
+     assert.equal($("title").text(), `${title} · ${SITE.name}`);
+     assert.equal($("meta[property='og:title']").attr("content"), title);
+     assert.ok($("main").text().includes(r.lead!.title));
+@@ -96,10 +96,10 @@ for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly",
+ }
+ 
+ test("an issue's date reads as Chinese readers write it, across months and years", () => {
+-  assert.equal(reportDateLabel("daily", "2026-10-17"), "10月17日");
+-  assert.equal(reportDateLabel("weekly", "2026-W42"), "10月12日—18日");
+-  assert.equal(reportDateLabel("weekly", "2026-W53"), "12月28日—1月3日");
+-  assert.equal(reportDateLabel("monthly", "2026-01"), "2026年1月");
++  assert.equal(reportDateLabel("daily", "2026-10-17"), "Oct 17");
++  assert.equal(reportDateLabel("weekly", "2026-W42"), "Oct 12–18");
++  assert.equal(reportDateLabel("weekly", "2026-W53"), "Dec 28–Jan 3");
++  assert.equal(reportDateLabel("monthly", "2026-01"), "January 2026");
+ });
+ 
+ test("a report without an edited lead uses only a still-public visible highlight", () => {
+diff --git a/tests/publication-date-correction.test.ts b/tests/publication-date-correction.test.ts
+index ca0b918..7c7f3c5 100644
+--- a/tests/publication-date-correction.test.ts
++++ b/tests/publication-date-correction.test.ts
+@@ -165,10 +165,10 @@ for(const [change,publishedAt] of [['archiving',corrected],['retracting',null]]
+   await sql`INSERT INTO grouping_overrides(article_id,reason,actor) VALUES(${id},'Reviewed grouping','test')`;
+   const plan=(await previewPublicationDateCorrection(id,publishedAt))!;
+   const input={version:plan.version,hash:plan.hash,publishedAt,requestId:`${change}-${id}`,reason:'Verified original publication'};
+-  await assert.rejects(correctPublicationDate(id,input,'test'),/人工/);
++  await assert.rejects(correctPublicationDate(id,input,'test'),/by hand/);
+   await sql`DELETE FROM grouping_overrides WHERE article_id=${id}`;
+   await sql`UPDATE articles SET grouping_status='pending' WHERE id=${id}`;
+-  await assert.rejects(correctPublicationDate(id,input,'test'),/处理/);
++  await assert.rejects(correctPublicationDate(id,input,'test'),/being processed/);
+   assert.equal((await sql`SELECT backfill FROM articles WHERE id=${id}`)[0]!.backfill,false);
+ });
+ 
+@@ -207,7 +207,7 @@ test('recent date correction refuses a later timestamp beyond the discovery tole
+   const id=await misdatedFixture();
+   const discoveredAt=new Date(Date.now()-6*3600_000);
+   await sql`UPDATE articles SET discovered_at=${discoveredAt},published_at=${discoveredAt},published_at_claim=${discoveredAt},timeline_at=${discoveredAt} WHERE id=${id}`;
+-  await assert.rejects(previewPublicationDateCorrection(id,new Date(Date.now()-3600_000).toISOString()),/一小时|收录/);
++  await assert.rejects(previewPublicationDateCorrection(id,new Date(Date.now()-3600_000).toISOString()),/one-hour|collection/);
+   const [a]=await sql`SELECT published_at FROM articles WHERE id=${id}`;
+   assert.equal(a!.published_at.toISOString(),discoveredAt.toISOString());
+ });
+@@ -245,7 +245,7 @@ test('retracting a proven repost date removes live evidence while retaining mate
+ test('retraction preserves imported history',async()=>{
+   const history=await fixture();
+   await sql`UPDATE articles SET backfill=true,backfill_reason='first-import',discovered_at=published_at+interval '30 days' WHERE id=${history}`;
+-  await assert.rejects(previewPublicationDateCorrection(history,null),/历史/);
++  await assert.rejects(previewPublicationDateCorrection(history,null),/Historical/);
+ });
+ 
+ // A judgement that finished without grouping (blocked, or relevance unknown) is not active processing.
+diff --git a/tests/publication-time.test.ts b/tests/publication-time.test.ts
+index 4278a90..23bf79e 100644
+--- a/tests/publication-time.test.ts
++++ b/tests/publication-time.test.ts
+@@ -41,9 +41,9 @@ const get = async (url: string) => {
+ 
+ test("the Markdown export names the collection time as such when the publication time is unknown", async () => {
+   const undated = await get(`/items/${ids.undated}/markdown`);
+-  assert.ok(undated.includes(`- 收录时间：${discovered.toISOString()}`));
+-  assert.ok(!undated.includes("发布时间"));
+-  assert.ok((await get(`/items/${ids.dated}/markdown`)).includes(`- 发布时间：${published.toISOString()}`));
++  assert.ok(undated.includes(`- Collected: ${discovered.toISOString()}`));
++  assert.ok(!undated.includes("Published"));
++  assert.ok((await get(`/items/${ids.dated}/markdown`)).includes(`- Published: ${published.toISOString()}`));
+ });
+ 
+ test("RSS gives no pubDate for an item without a known publication time", async () => {
+diff --git a/tests/publication.test.ts b/tests/publication.test.ts
+index 9feb504..00c8989 100644
+--- a/tests/publication.test.ts
++++ b/tests/publication.test.ts
+@@ -20,6 +20,7 @@ import { latestHotRanking } from "@aihot/backend/publication/hot";
+ import { loadItemShare } from "@aihot/backend/publication/og";
+ import { buildApp } from "../apps/api/src/app.ts";
+ 
++// HotBrief en-US: English is the reader's language and is not translated, so the foreign originals here are declared German ("de").
+ const T = tag();
+ const SOURCE = `test-publication-${T}`;
+ const BODY = `FULLTEXT-${T} `.repeat(40);
+@@ -98,7 +99,7 @@ test("manual score corrections, including no score, survive every public project
+ test("Markdown preserves a table's headings, caption, links, alignment and multiline cells in both languages", async () => {
+   const id = await article();
+   const table = '<table><caption>Benchmark results</caption><thead><tr><th>Model</th><th align="right">Score</th></tr></thead><tbody><tr><td><a href="https://example.com/model">A|B</a></td><td>90<br>±1</td></tr></tbody></table>';
+-  await sql`UPDATE articles SET language = 'en', body_html = ${table} WHERE id = ${id}`;
++  await sql`UPDATE articles SET language = 'de', body_html = ${table} WHERE id = ${id}`;
+   await sql`INSERT INTO translations (article_id, revision, body_html, body_text, origin) VALUES (${id}, 1, ${table.replace('Benchmark results', '基准结果').replace('Model', '模型').replace('Score', '分数')}, '基准结果', 'source')`;
+   await publishArticle(id, released());
+   const response = await get(`/items/${id}/markdown`);
+@@ -148,7 +149,7 @@ test("Markdown retains numeric superscripts, subscripts and fenced code while re
+ 
+ test("site reading sends one language while exports retain both, including after withdrawal", async () => {
+   const id = await article();
+-  await sql`UPDATE articles SET language = 'en', body_html = '<h2>Original heading</h2><p>Original full body</p>' WHERE id = ${id}`;
++  await sql`UPDATE articles SET language = 'de', body_html = '<h2>Original heading</h2><p>Original full body</p>' WHERE id = ${id}`;
+   await sql`INSERT INTO translations (article_id, revision, body_html, body_text, origin) VALUES (${id}, 1, '<h2>译文标题</h2><p>中文完整正文</p>', '中文完整正文', 'source')`;
+   await publishArticle(id, released());
+   const normal = JSON.parse((await get(`/api/site/items/${id}`)).body);
+diff --git a/tests/report-outlets.test.ts b/tests/report-outlets.test.ts
+index f7700fd..3316eae 100644
+--- a/tests/report-outlets.test.ts
++++ b/tests/report-outlets.test.ts
+@@ -122,7 +122,7 @@ test('a daily citation without a frozen summary, and a flash with an earlier fro
+ test('discovery counts exactly the publicly indexed topics it lists', () => {
+   const text = llmsTxt({ hasDailies: false, hasWeekly: false, hasMonthly: false, topics: [{ slug: 'sample', name: 'Example', definition: 'Example topic' }], tools: [],
+     modules: { api: [], pace: [], pages: [], topics: [], access: [], usage: [], guideClients: [], ways: [] } });
+-  assert.match(text, /（1 个主题，下一节逐个列出）/);
++  assert.match(text, /\(1 topics, listed in the next section\)/);
+ });
+ 
+ // A saved overview/section introduction can still repeat the withdrawn citation after the list and
+diff --git a/tests/selected-card.test.ts b/tests/selected-card.test.ts
+index 0ea8b50..5e69fda 100644
+--- a/tests/selected-card.test.ts
++++ b/tests/selected-card.test.ts
+@@ -52,7 +52,8 @@ test("the title is larger than the summary, followed by the source and Beijing d
+   for (const end of ["default", "pc", "mobile"]) assert.match(size[end], /^heading-[34]$/, "18px on computers, 16px on phones");
+   assert.equal(summary.text_size ?? "normal", "normal");
+   assert.equal(summary.content, "官方演示了团队协作用法。");
+-  assert.deepEqual([meta.text_size, meta.content], ["notation", "<font color='grey'>ChatGPT · 10月15日发布</font>"]);
++  // HotBrief en-US: the site clock is UTC (16:30Z is still the 14th) and monthDay reads "Oct 14"
++  assert.deepEqual([meta.text_size, meta.content], ["notation", "<font color='grey'>ChatGPT · Oct 14发布</font>"]);
+   assert.deepEqual([reason.text_size, reason.content], ["notation", `<font color='grey'>**${ITEM_COPY.reasonLabel}**　官方演示了 Space 的协作用法。</font>`]);
+   const links = buttons.columns.map((c: any) => c.elements[0]);
+   assert.deepEqual(links.map((b: any) => b.text.content), [`在 ${SITE.name} 阅读`, "原文"]);
+diff --git a/tests/source-dates.standalone.test.ts b/tests/source-dates.standalone.test.ts
+index 0411142..877bbd1 100644
+--- a/tests/source-dates.standalone.test.ts
++++ b/tests/source-dates.standalone.test.ts
+@@ -9,19 +9,20 @@ import { parseLooseDate, readPublicationDate, describePublicationTime } from "@a
+ 
+ const iso = (v: string, offset?: string) => parseLooseDate(v, offset)?.toISOString() ?? null;
+ 
++// HotBrief en-US: parseLooseDate's default source offset is -05:00 (readPublicationDate's is +00:00), not +08:00.
+ test("a date and time without a zone is in the source's offset, not the server's", () => {
+-  assert.equal(iso("2026-09-26 10:00"), "2026-09-26T02:00:00.000Z");
+-  assert.equal(iso("2026-09-26T10:00:00"), "2026-09-26T02:00:00.000Z");
+-  assert.equal(iso("2026/09/26 10:00"), "2026-09-26T02:00:00.000Z");
+-  assert.equal(iso("2026年9月26日 10:00"), "2026-09-26T02:00:00.000Z");
++  assert.equal(iso("2026-09-26 10:00"), "2026-09-26T15:00:00.000Z");
++  assert.equal(iso("2026-09-26T10:00:00"), "2026-09-26T15:00:00.000Z");
++  assert.equal(iso("2026/09/26 10:00"), "2026-09-26T15:00:00.000Z");
++  assert.equal(iso("2026年9月26日 10:00"), "2026-09-26T15:00:00.000Z");
+   assert.equal(iso("2026-09-26 10:00", "-07:00"), "2026-09-26T17:00:00.000Z");
+ });
+ 
+ test("a bare date is midnight in the source's offset, including ISO date-only text", () => {
+-  assert.equal(iso("2026/09/26"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("2026年9月26日"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("Sep 26, 2026"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("2026-09-26"), "2026-09-25T16:00:00.000Z");
++  assert.equal(iso("2026/09/26"), "2026-09-26T05:00:00.000Z");
++  assert.equal(iso("2026年9月26日"), "2026-09-26T05:00:00.000Z");
++  assert.equal(iso("Sep 26, 2026"), "2026-09-26T05:00:00.000Z");
++  assert.equal(iso("2026-09-26"), "2026-09-26T05:00:00.000Z");
+   assert.equal(iso("September 26th, 2026", "+00:00"), "2026-09-26T00:00:00.000Z");
+ });
+ 
+@@ -38,19 +39,19 @@ test("no date at all is null", () => {
+ });
+ 
+ test('"at" between the date and the time joins them like a space', () => {
+-  assert.equal(iso("Sep 26, 2026 at 10:30"), "2026-09-26T02:30:00.000Z");
+-  assert.equal(iso("Published Sep 26, 2026 at 10:30 AM"), "2026-09-26T02:30:00.000Z");
++  assert.equal(iso("Sep 26, 2026 at 10:30"), "2026-09-26T15:30:00.000Z");
++  assert.equal(iso("Published Sep 26, 2026 at 10:30 AM"), "2026-09-26T15:30:00.000Z");
+   assert.equal(iso("September 26, 2026 at 10:30 AM EST"), "2026-09-26T15:30:00.000Z");
+   assert.equal(iso("March 8, 2026 at 02:30", "+00:00"), "2026-03-08T02:30:00.000Z");
+-  assert.equal(iso("2026-09-26 at 10:30"), "2026-09-26T02:30:00.000Z");
+-  assert.equal(iso("09/26/2026 at 10:30"), "2026-09-26T02:30:00.000Z");
+-  assert.deepEqual(readPublicationDate("2026-09-26 at 10:30").publicationTime, "2026-09-26T02:30:00.000Z");
++  assert.equal(iso("2026-09-26 at 10:30"), "2026-09-26T15:30:00.000Z");
++  assert.equal(iso("09/26/2026 at 10:30"), "2026-09-26T15:30:00.000Z");
++  assert.deepEqual(readPublicationDate("2026-09-26 at 10:30").publicationTime, "2026-09-26T10:30:00.000Z");
+ });
+ 
+ test("an abbreviated month may end with a period", () => {
+-  assert.equal(iso("Sept. 26, 2026"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("Published Sept. 26, 2026"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("26 Sept. 2026"), "2026-09-25T16:00:00.000Z");
++  assert.equal(iso("Sept. 26, 2026"), "2026-09-26T05:00:00.000Z");
++  assert.equal(iso("Published Sept. 26, 2026"), "2026-09-26T05:00:00.000Z");
++  assert.equal(iso("26 Sept. 2026"), "2026-09-26T05:00:00.000Z");
+   assert.equal(iso("Sept. 26, 2026, 10:30 AM EDT"), "2026-09-26T14:30:00.000Z");
+   assert.equal(iso("Feb. 30, 2026"), null);
+ });
+@@ -64,8 +65,8 @@ test("English wall-clock dates are not shifted by the host's daylight-saving gap
+       assert.equal(iso("8 March 2026 02:30:45", "+08:00"), "2026-03-07T18:30:45.000Z", tz);
+       assert.equal(iso("March 29th, 2026 02:30", "+00:00"), "2026-03-29T02:30:00.000Z", tz);
+       assert.equal(iso("29 Mar 2026 02:30", "-07:00"), "2026-03-29T09:30:00.000Z", tz);
+-      assert.equal(iso("Sep 26, 2026 10:00 PM"), "2026-09-26T14:00:00.000Z", tz);
+-      assert.equal(iso("Sep 26, 2026"), "2026-09-25T16:00:00.000Z", tz);
++      assert.equal(iso("Sep 26, 2026 10:00 PM"), "2026-09-27T03:00:00.000Z", tz);
++      assert.equal(iso("Sep 26, 2026"), "2026-09-26T05:00:00.000Z", tz);
+       assert.equal(iso("Feb 30, 2026 02:30", "+00:00"), null, tz);
+       assert.equal(iso("Mar 8, 2026 25:30", "+00:00"), null, tz);
+     }
+@@ -96,8 +97,8 @@ test("English times with explicit zones retain their zone on every host", () =>
+ });
+ 
+ test("CST, which Chinese pages print for China time, is read in the source's offset", () => {
+-  assert.equal(iso("2026-09-26 10:00:00 CST"), "2026-09-26T02:00:00.000Z");
+-  assert.equal(iso("Sep 26, 2026 10:00 PM CST"), "2026-09-26T14:00:00.000Z");
++  assert.equal(iso("2026-09-26 10:00:00 CST"), "2026-09-26T15:00:00.000Z");
++  assert.equal(iso("Sep 26, 2026 10:00 PM CST"), "2026-09-27T03:00:00.000Z");
+   assert.equal(iso("2026-09-26 10:00 CST", "-06:00"), "2026-09-26T16:00:00.000Z");
+ });
+ 
+@@ -110,8 +111,8 @@ test("an article page's publication time without a zone is the same moment acros
+   };
+   try {
+     for (const tz of ["UTC", "Asia/Shanghai"]) {
+-      assert.equal(read(tz, "2026-09-26T10:00:00"), "2026-09-26T02:00:00.000Z", tz);
+-      assert.equal(read(tz, "2026-09-26T10:00:00", "+00:00"), "2026-09-26T10:00:00.000Z", tz);
++      assert.equal(read(tz, "2026-09-26T10:00:00"), "2026-09-26T10:00:00.000Z", tz);
++      assert.equal(read(tz, "2026-09-26T10:00:00", "+08:00"), "2026-09-26T02:00:00.000Z", tz); // HotBrief en-US: an offset other than the +00:00 default
+       assert.equal(read(tz, "2026-09-26T10:00:00+09:00", "+00:00"), "2026-09-26T01:00:00.000Z", tz);
+     }
+     for (const tz of ["America/New_York", "Europe/Berlin"]) {
+@@ -148,7 +149,7 @@ test('all date-only formats retain the source calendar day and use its offset',
+ test('real midnight keeps its precision; date-only and missing source precision never invent it', () => {
+   assert.deepEqual(readPublicationDate('2026-10-13T00:00:00-07:00'), { publishedAt: new Date('2026-10-13T07:00:00Z'), publicationTime: '2026-10-13T07:00:00.000Z' });
+   assert.equal(describePublicationTime(new Date('2026-10-13T07:00:00Z'), '2026-10-13'), '2026-10-13（原文仅有日期，时刻未知）');
+-  assert.equal(describePublicationTime(new Date('2026-10-13T07:00:00Z'), null), '2026-10-13 15:00（历史记录，原始精度未知）');
++  assert.equal(describePublicationTime(new Date('2026-10-13T07:00:00Z'), null), '2026-10-13 07:00（历史记录，原始精度未知）');
+   assert.equal(describePublicationTime(null, null), '未知');
+ });
+ 
+@@ -156,7 +157,7 @@ test('grouping distinguishes a publication day from an exact instant', () => {
+   const report = { title: 'Release', source: 'Official', firstParty: true, at: new Date('2026-10-13T07:00:00Z'), publicationTime: '2026-10-13', summary: null };
+   const text = describeReport(report, '报道');
+   assert.match(text, /发布时间：2026-10-13（原文仅有日期，时刻未知）/);
+-  assert.doesNotMatch(text, /15:00/);
++  assert.doesNotMatch(text, /07:00/); // HotBrief en-US: the instant's site-clock (UTC) time, not Beijing's 15:00
+ });
+ 
+ test("legacy JSON and RSS formats keep their source date and zone", () => {
+diff --git a/tests/sources.standalone.test.ts b/tests/sources.standalone.test.ts
+index 22dbf39..4901c0a 100644
+--- a/tests/sources.standalone.test.ts
++++ b/tests/sources.standalone.test.ts
+@@ -230,10 +230,11 @@ test("noise words match whatever their case", () => {
+ test("a time without a zone is read in the source's offset, in JSON lists and in detail page metadata", async () => {
+   const list = async (extra: Record<string, unknown> = {}) => (await fetchJsonList({ id: "test-json", config: { url: `${site}/zoneless.json`, itemsPath: "result", titlePaths: ["title"], urlTemplate: "https://example.org/p/{id}", publishedAtPath: "publishDate", ...extra } } as never))
+     .map((c) => c.publishedAt?.toISOString());
+-  assert.deepEqual(await list(), ["2026-09-30T09:43:58.000Z", "2026-09-30T17:43:58.000Z", "2026-09-30T22:43:58.000Z"], "+08:00 by default, as list pages; a time with its zone keeps it");
+-  assert.deepEqual(await list({ publishedAtUtcOffset: "+00:00" }), ["2026-09-30T17:43:58.000Z", "2026-09-30T17:43:58.000Z", "2026-09-30T22:43:58.000Z"]);
++  // HotBrief en-US: lists read a zoneless time at +00:00 by default, so the configured offset is checked with +08:00
++  assert.deepEqual(await list(), ["2026-09-30T17:43:58.000Z", "2026-09-30T17:43:58.000Z", "2026-09-30T22:43:58.000Z"], "+00:00 by default, as list pages; a time with its zone keeps it");
++  assert.deepEqual(await list({ publishedAtUtcOffset: "+08:00" }), ["2026-09-30T09:43:58.000Z", "2026-09-30T17:43:58.000Z", "2026-09-30T22:43:58.000Z"]);
+   const detail = async (offset?: string) => (await fetchDetail(`${site}/zoneless-post`, { id: "test-feed", config: { detail: { maxFetches: 20, publishedAtUtcOffset: offset } } } as never, { date: true, title: false, summary: false, body: false })).publishedAt?.toISOString();
+-  assert.deepEqual([await detail(), await detail("+00:00")], ["2026-09-30T09:43:58.000Z", "2026-09-30T17:43:58.000Z"]);
++  assert.deepEqual([await detail(), await detail("+08:00")], ["2026-09-30T17:43:58.000Z", "2026-09-30T09:43:58.000Z"]);
+ });
+ 
+ test("posts embedded in a flight payload keep their own arrays and brackets inside strings", async () => {
+@@ -243,9 +244,9 @@ test("posts embedded in a flight payload keep their own arrays and brackets insi
+ 
+ test("dates in yyyymmdd and in JSON-LD are read", async () => {
+   const days = await fetchJsonList({ id: "test-json", config: { url: `${site}/days.json`, itemsPath: "data.list", titlePaths: ["ttl"], urlTemplate: "https://example.org/blog/view?seq={seq}", publishedAtPath: "day", publishedAtUnit: "yyyymmdd" } } as never);
+-  assert.deepEqual(days.map((c) => c.publishedAt?.toISOString() ?? null), ["2026-09-21T16:00:00.000Z", null], "calendar days use the source offset; February 30 is no date");
++  assert.deepEqual(days.map((c) => c.publishedAt?.toISOString() ?? null), ["2026-09-22T00:00:00.000Z", null], "calendar days use the source offset; February 30 is no date"); // HotBrief en-US: +00:00
+   const got = await fetchDetail(`${site}/ld-post`, { id: "test-feed", config: { detail: { maxFetches: 20 } } } as never, { date: true, title: false, summary: false, body: false });
+-  assert.equal(got.publishedAt?.toISOString(), "2026-09-23T16:00:00.000Z");
++  assert.equal(got.publishedAt?.toISOString(), "2026-09-24T00:00:00.000Z");
+   assert.equal(got.publicationTime, "2026-09-24");
+ });
+ 
+diff --git a/tests/text.standalone.test.ts b/tests/text.standalone.test.ts
+index ef23d89..3052f2f 100644
+--- a/tests/text.standalone.test.ts
++++ b/tests/text.standalone.test.ts
+@@ -58,8 +58,12 @@ test("writing and public reading agree about Chinese, including Japanese with ka
+       assert.equal(exportTranslation({ language, body_text, tr_html: "<p>发布了新模型。</p>", tr_complete: true }), "<p>发布了新模型。</p>");
+     }
+   }
++  // HotBrief en-US: the reader's language is English, so an English body (declared, or Latin text without CJK or kana) is
++  // the one left as written and a Chinese body is translated; a declared language still wins over the script
+   assert.equal(isChineseBody({ language: "ja", body_text: "人工知能研究開発" }), false);
+-  assert.equal(isChineseBody({ language: null, body_text: "新的人工智能模型发布了。" }), true);
+-  assert.equal(isChineseBody({ language: "zh-Hans", body_text: "API" }), true);
+-  assert.equal(isChineseBody({ language: "en", body_text: "An English article quoting 人工智能." }), false);
++  assert.equal(isChineseBody({ language: null, body_text: "新的人工智能模型发布了。" }), false);
++  assert.equal(looksZh("A new AI model was released."), true);
++  assert.equal(isChineseBody({ language: null, body_text: "A new AI model was released." }), true);
++  assert.equal(isChineseBody({ language: "zh-Hans", body_text: "API" }), false);
++  assert.equal(isChineseBody({ language: "en", body_text: "An English article quoting 人工智能." }), true);
+ });
+diff --git a/tests/timeline-day-counts.test.ts b/tests/timeline-day-counts.test.ts
+index 77a4760..8a9d8a1 100644
+--- a/tests/timeline-day-counts.test.ts
++++ b/tests/timeline-day-counts.test.ts
+@@ -19,7 +19,8 @@ const descending = (anchors: number[]) => anchors.sort((a, b) => b - a).map(anch
+ test("day counts retain exact Beijing midnight, leap-day and year boundaries", () => {
+   assert.deepEqual(countTimelineDays([], new Set()), {});
+   // UTC inputs and calendar answers are independent of the production timezone helpers.
+-  const anchors = ["2023-12-30T16:00:00Z", "2023-12-31T16:00:00Z", "2024-02-28T16:00:00Z", "2024-02-29T16:00:00Z"].flatMap(time => {
++  // HotBrief en-US: the site clock's midnights are UTC midnights
++  const anchors = ["2023-12-31T00:00:00Z", "2024-01-01T00:00:00Z", "2024-02-29T00:00:00Z", "2024-03-01T00:00:00Z"].flatMap(time => {
+     const midnight = Date.parse(time);
+     return [midnight - 1, midnight, midnight, midnight + 1];
+   });
+diff --git a/tests/topic-membership.test.ts b/tests/topic-membership.test.ts
+index fbbc9b5..45eaddf 100644
+--- a/tests/topic-membership.test.ts
++++ b/tests/topic-membership.test.ts
+@@ -14,17 +14,18 @@ test("topic lists and pool counts share the exact membership predicate", async (
+   const prefix = `membership-${tag()}`;
+   const at = new Date("2026-01-01T00:00:00Z");
+   const now = new Date(+at + 1000);
++  // HotBrief en-US: the agent topic is defined by the tag "Agents" (industry/topics.json)
+   const cases = [
+-    { title: "", original: null, tags: ["Agent"], topics: ["agent"] },
++    { title: "", original: null, tags: ["Agents"], topics: ["agent"] },
+     { title: "Anthropic Agent", original: null, tags: [], topics: [] },
+     { title: "", original: null, tags: ["entity:anthropic"], topics: ["anthropic"] },
+     { title: "Unrelated", original: null, tags: ["entity:anthropic", "entity:openai"], topics: [] },
+     { title: "Unrelated", original: "ANTHROPIC launches a model", tags: ["entity:anthropic", "entity:openai"], topics: ["anthropic"] },
+     { title: "Metadata", original: null, tags: ["entity:meta", "entity:openai"], topics: [] },
+     { title: "发布Meta的新模型", original: null, tags: ["entity:meta", "entity:openai"], topics: ["meta"] },
+-    { title: "Unselected", original: null, tags: ["Agent", "entity:anthropic"], topics: ["agent", "anthropic"], selected: false },
+-    { title: "Withdrawn", original: null, tags: ["Agent", "entity:anthropic"], topics: ["agent", "anthropic"], visibility: "withdrawn" },
+-    { title: "Future", original: null, tags: ["Agent", "entity:anthropic"], topics: ["agent", "anthropic"], future: true },
++    { title: "Unselected", original: null, tags: ["Agents", "entity:anthropic"], topics: ["agent", "anthropic"], selected: false },
++    { title: "Withdrawn", original: null, tags: ["Agents", "entity:anthropic"], topics: ["agent", "anthropic"], visibility: "withdrawn" },
++    { title: "Future", original: null, tags: ["Agents", "entity:anthropic"], topics: ["agent", "anthropic"], future: true },
+   ];
+   await sql`INSERT INTO sources (id, name, kind, tier) VALUES (${prefix}, ${prefix}, 'rss', 'T1')`;
+   for (const [i, row] of cases.entries()) {
+diff --git a/tests/topics.test.ts b/tests/topics.test.ts
+index c7519c7..75be374 100644
+--- a/tests/topics.test.ts
++++ b/tests/topics.test.ts
+@@ -58,7 +58,7 @@ async function report(r: Report): Promise<string> {
+   });
+   await sql`UPDATE articles SET discovered_at = ${r.at}, timeline_at = ${r.at}, grouped_at = now() WHERE id = ${articleId}`;
+   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, score, selected, subjects, tags)
+-            VALUES (${articleId}, 1, 'rule', 'pass', ${r.category ?? "ai-models"}, ${r.title}, ${`摘要 ${n}`}, ${r.score ?? 80}, ${r.selected ?? true}, ${r.subjects ?? []}, ${[r.category === "ai-products" ? "产品更新" : r.category === "paper" ? "论文/研究" : r.category === "tip" ? "教程/实践" : r.category === "industry" ? "行业动态" : r.category === "opinion" ? "大佬观点" : "模型发布", ...(r.tags ?? [])]})`;
++            VALUES (${articleId}, 1, 'rule', 'pass', ${r.category ?? "ai-models"}, ${r.title}, ${`摘要 ${n}`}, ${r.score ?? 80}, ${r.selected ?? true}, ${r.subjects ?? []}, ${[r.category === "ai-products" ? "Product update" : r.category === "paper" ? "Paper/Research" : r.category === "tip" ? "Tutorial/Practice" : r.category === "industry" ? "Industry news" : r.category === "opinion" ? "Expert view" : "Model release", ...(r.tags ?? [])]})`; // HotBrief en-US: industry/taxonomy.ts CATEGORY_TAGS
+   if (r.fact) await sql`INSERT INTO fact_articles (fact_id, article_id, role) VALUES (${r.fact}, ${articleId}, 'report')`;
+   await publishArticle(articleId, { releasedAt: new Date(r.at.getTime() + 60_000) });
+   return articleId;
+@@ -100,7 +100,7 @@ test("a company topic takes the articles about it, not the ones that only mentio
+   const metadata = await report({ at: hoursAgo(36), title: `Metadata 标准发布，OpenAI 参与 ${T}`, subjects: ["meta", "openai"] });
+   const adjacent = await report({ at: hoursAgo(37), title: `发布Meta的新模型 ${T}`, subjects: ["meta", "openai"] });
+   const headline = await report({ at: hoursAgo(38), title: `Anthropic 被一篇盘点提到 ${T}`, subjects: ["google"] });
+-  const agent = await report({ at: hoursAgo(39), title: `智能体框架发布 ${T}`, tags: ["Agent"] });
++  const agent = await report({ at: hoursAgo(39), title: `智能体框架发布 ${T}`, tags: ["Agents"] }); // HotBrief en-US: the agent topic's tag (industry/topics.json)
+ 
+   const anthropic = await members("anthropic");
+   for (const id of [about, product, english]) assert.ok(anthropic.includes(id), "about Anthropic");
+@@ -126,8 +126,8 @@ test("a company topic takes the articles about it, not the ones that only mentio
+ 
+ test("a story page names the topics of its reports", async () => {
+   const launch = await story(`智能体框架 V2 发布 ${T}`);
+-  await report({ source: OFFICIAL, at: hoursAgo(26), title: `智能体框架 V2 发布 ${T}`, tags: ["Agent"], fact: await fact(launch.id, "发布 V2") });
+-  assert.deepEqual(await topicsOfStory(launch.id), [{ slug: "agent", name: "Agent 智能体" }, { slug: "model-releases", name: "模型发布" }]);
++  await report({ source: OFFICIAL, at: hoursAgo(26), title: `智能体框架 V2 发布 ${T}`, tags: ["Agents"], fact: await fact(launch.id, "发布 V2") });
++  assert.deepEqual(await topicsOfStory(launch.id), [{ slug: "agent", name: "AI agents" }, { slug: "model-releases", name: "Model releases" }]);
+ });
+ 
+ test("withdrawn articles stay out of lists and counts", async () => {
+diff --git a/tests/translate-shutdown.test.ts b/tests/translate-shutdown.test.ts
+index cc90646..2a7762e 100644
+--- a/tests/translate-shutdown.test.ts
++++ b/tests/translate-shutdown.test.ts
+@@ -7,6 +7,7 @@ import { stopBoss } from '@aihot/backend/jobs/queue';
+ import { upsertMaterial } from '@aihot/backend/content/materials';
+ import { publishArticle } from '@aihot/backend/publication/publish';
+ 
++// HotBrief en-US: English is the reader's language and is not translated, so the foreign originals here are declared German ("de").
+ const T = tag();
+ const SOURCE = `test-translate-stop-${T}`;
+ let active: { asked: ReturnType<typeof gate<void>>; hold: ReturnType<typeof gate<void>>; calls: number; misaligned: boolean; refused?: boolean };
+@@ -54,7 +55,7 @@ for (const misaligned of [false, true]) test(`SIGTERM finishes the sent ${misali
+   active = { asked: gate(), hold: gate(), calls: 0, misaligned };
+   const first = misaligned ? `First paragraph ${T}.` : `First paragraph ${T}. ${'English text '.repeat(170)}`;
+   const second = misaligned ? `Second paragraph ${T}.` : `Second paragraph ${T}. ${'More English '.repeat(170)}`;
+-  const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.org/translation-shutdown-${T}/${misaligned}`, title: `Shutdown ${T}`, bodyHtml: `<p>${first}</p><p>${second}</p>`, bodyText: first + second, bodyStatus: 'ok', language: 'en', via: 'fetch', publishedAt: new Date(), discoveredAt: new Date(Date.now() + 86_400_000) });
++  const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.org/translation-shutdown-${T}/${misaligned}`, title: `Shutdown ${T}`, bodyHtml: `<p>${first}</p><p>${second}</p>`, bodyText: first + second, bodyStatus: 'ok', language: 'de', via: 'fetch', publishedAt: new Date(), discoveredAt: new Date(Date.now() + 86_400_000) });
+   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
+     VALUES (${articleId},1,'rule','pass','ai-models',${`终止测试${T}`},'摘要','理由',90,true)`;
+   await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
+@@ -83,7 +84,7 @@ for (const misaligned of [false, true]) test(`SIGTERM finishes the sent ${misali
+ 
+ test('a batch the provider refuses after SIGTERM is an interruption, not a translation attempt', async () => {
+   active = { asked: gate(), hold: gate(), calls: 0, misaligned: false, refused: true };
+-  const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.org/translation-shutdown-${T}/refused`, title: `Refused ${T}`, bodyHtml: `<p>Refused paragraph ${T}.</p><p>Another refused paragraph ${T}.</p>`, bodyText: `Refused paragraph ${T}. Another refused paragraph ${T}.`, bodyStatus: 'ok', language: 'en', via: 'fetch', publishedAt: new Date(), discoveredAt: new Date(Date.now() + 86_400_000) });
++  const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.org/translation-shutdown-${T}/refused`, title: `Refused ${T}`, bodyHtml: `<p>Refused paragraph ${T}.</p><p>Another refused paragraph ${T}.</p>`, bodyText: `Refused paragraph ${T}. Another refused paragraph ${T}.`, bodyStatus: 'ok', language: 'de', via: 'fetch', publishedAt: new Date(), discoveredAt: new Date(Date.now() + 86_400_000) });
+   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
+     VALUES (${articleId},1,'rule','pass','ai-models',${`拒绝测试${T}`},'摘要','理由',90,true)`;
+   await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
+diff --git a/tests/translate.test.ts b/tests/translate.test.ts
+index 714ab80..eb0813c 100644
+--- a/tests/translate.test.ts
++++ b/tests/translate.test.ts
+@@ -13,6 +13,7 @@ import { autoReleaseUnknownReceipts } from "@aihot/backend/operations/recover";
+ import { publishArticle } from "@aihot/backend/publication/publish";
+ import { buildApp } from "../apps/api/src/app.ts";
+ 
++// HotBrief en-US: English is the reader's language and is not translated, so the foreign originals here are declared German ("de").
+ const T = tag();
+ const SOURCE = `test-translate-${T}`;
+ const URL_ = `https://example.com/translate-${T}`;
+@@ -42,7 +43,7 @@ const provider = await stub(async (_hit, req) => {
+       return n === 1 ? "解释 Neuroglancer 的文字 ⟦0⟧。" : '解释 <a id="L0">Neuroglancer</a> 的文字 ⟦0⟧。';
+     }
+     if (s.includes("never keeps")) return "丢了链接。";
+-    if (s.includes("Introducing")) return "隆重推出 Sonnet 5.5。";
++    if (s.includes("Introducing") || s.includes("を発表しました")) return "隆重推出 Sonnet 5.5。"; // HotBrief en-US: the quoted post below is Japanese
+     return s.includes("twenty") ? "价格是二十美元。" : s.includes("ten") ? "价格是十美元。" : "译文";
+   });
+   return { id: "stub", choices: [{ message: { content: JSON.stringify({ t }) } }], usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 } };
+@@ -55,7 +56,7 @@ const app = await buildApp();
+ // tag keeps the text unique: identical input would reuse an earlier run's paid answer.
+ const material = (price: string) =>
+   upsertMaterial({
+-    sourceId: SOURCE, url: URL_, title: `Price update ${T}`, language: "en", bodyText: `The price is ${price} dollars (${T}).`,
++    sourceId: SOURCE, url: URL_, title: `Price update ${T}`, language: "de", bodyText: `The price is ${price} dollars (${T}).`,
+     bodyHtml: `<p>The price is ${price} dollars (${T}).</p>`, bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 600_000),
+   });
+ 
+@@ -79,8 +80,9 @@ after(async () => {
+ test("Japanese bodies with kanji are translated with or without a language hint", async () => {
+   // A newer Chinese original used to be skipped. Reconsidering old language skips must neither
+   // send it to a paid provider nor let it take the single batch slot from Japanese behind it.
+-  const { articleId: chinese } = await upsertMaterial({ sourceId: SOURCE, url: `${URL_}-chinese`, title: '新的模型已发布',
+-    bodyText: '这是已经用中文写好的完整正文。', bodyHtml: '<p>这是已经用中文写好的完整正文。</p>',
++  // HotBrief en-US: the original already in the reader's language is English; a Chinese one is foreign here and is translated.
++  const { articleId: chinese } = await upsertMaterial({ sourceId: SOURCE, url: `${URL_}-chinese`, title: 'A new model is out',
++    bodyText: 'This full body is already written in English.', bodyHtml: '<p>This full body is already written in English.</p>',
+     bodyStatus: 'ok', via: 'fetch', publishedAt: new Date(), discoveredAt: new Date(Date.now() + 600_000) });
+   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
+     VALUES (${chinese},1,'rule','pass','ai-models','新的模型已发布','摘要','理由',90,true)`;
+@@ -108,7 +110,7 @@ test("a presentation-only source update repairs original and translated bodies w
+   const text = `The model introduces useful improvements ${T}. Read the documentation.`;
+   const beforeHtml = `<p>The model introduces useful improvements ${T}.</p><p>Read <a href="https://example.com/old">the documentation</a>.</p>`;
+   const afterHtml = `<div><p>The model introduces useful improvements ${T}.</p><figure><a href="https://example.com/chart"><img src="https://example.com/chart.png" alt="Chart"></a></figure><p>Read <a href="https://example.com/docs">the documentation</a>.</p></div>`;
+-  const material = { sourceId: SOURCE, url: `${URL_}-presentation`, title: `Display repair ${T}`, language: "en", bodyText: text, bodyHtml: beforeHtml,
++  const material = { sourceId: SOURCE, url: `${URL_}-presentation`, title: `Display repair ${T}`, language: "de", bodyText: text, bodyHtml: beforeHtml,
+     bodyStatus: "ok" as const, via: "fetch" as const, publishedAt: new Date() };
+   const { articleId } = await upsertMaterial(material);
+   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
+@@ -152,7 +154,7 @@ test("a presentation-only source update repairs original and translated bodies w
+ 
+ test("a layout refresh follows image identity when translated text moved its pictures", async () => {
+   const text = `Compare charts A and B ${T}.`;
+-  const input = { sourceId: SOURCE, url: `${URL_}-reordered-media`, title: `Compare charts ${T}`, language: "en", bodyText: text,
++  const input = { sourceId: SOURCE, url: `${URL_}-reordered-media`, title: `Compare charts ${T}`, language: "de", bodyText: text,
+     bodyHtml: `<p>Compare <img src="https://example.com/a.png"> charts <img src="https://example.com/b.png"> A and B ${T}.</p>`,
+     bodyStatus: "ok" as const, via: "fetch" as const, publishedAt: new Date() };
+   const { articleId } = await upsertMaterial(input);
+@@ -165,7 +167,7 @@ test("a layout refresh follows image identity when translated text moved its pic
+ 
+ test("a translation finishing during a layout refresh cannot restore the missing image", async () => {
+   const text = `The price is ten dollars (layout-race-${T}).`;
+-  const input = { sourceId: SOURCE, url: `${URL_}-inflight-layout`, title: `Layout race ${T}`, language: "en", bodyText: text,
++  const input = { sourceId: SOURCE, url: `${URL_}-inflight-layout`, title: `Layout race ${T}`, language: "de", bodyText: text,
+     bodyHtml: `<p>${text}</p>`, bodyStatus: "ok" as const, via: "fetch" as const, publishedAt: new Date() };
+   const { articleId } = await upsertMaterial(input);
+   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
+@@ -222,7 +224,7 @@ test("links and images inside a paragraph survive the translation, or the paragr
+   const html = `<p>Explaining <a href="https://neuroglancer.dev/docs">Neuroglancer</a> in text ${T} <img src="https://example.com/chart-${T}.png" alt="B200 prices"></p>` +
+     `<p>A paragraph the model <a href="https://example.com/kept">never keeps</a> whole ${T}.</p>`;
+   const { articleId: id } = await upsertMaterial({
+-    sourceId: SOURCE, url: `${URL_}-links`, title: `Links ${T}`, language: "en", bodyText: `Explaining Neuroglancer. ${T}`, bodyHtml: html,
++    sourceId: SOURCE, url: `${URL_}-links`, title: `Links ${T}`, language: "de", bodyText: `Explaining Neuroglancer. ${T}`, bodyHtml: html,
+     bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 1_200_000),
+   });
+   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
+@@ -240,11 +242,12 @@ test("links and images inside a paragraph survive the translation, or the paragr
+ });
+ 
+ test("the post a selected X post quotes is translated once and shown with the item", async () => {
++  // HotBrief en-US: an English quoted post is already in the reader's language, so the quoted post is Japanese.
+   const tweetId = `7${Date.now()}`;
+   const { articleId: id } = await upsertMaterial({
+-    sourceId: SOURCE, url: `https://x.com/bcherny/status/8${Date.now()}`, title: `Sonnet ${T}`, language: "en", bodyText: "Try it!", bodyStatus: "ok",
++    sourceId: SOURCE, url: `https://x.com/bcherny/status/8${Date.now()}`, title: `Sonnet ${T}`, language: "de", bodyText: "Try it!", bodyStatus: "ok",
+     via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 1_800_000),
+-    xPost: { tweetId: `8${Date.now()}`, authorName: "Boris", handle: "bcherny", text: "Try it!", quoted: { authorName: "Anthropic", handle: "AnthropicAI", text: `Introducing Claude Sonnet 5.5 ${T}`, url: `https://x.com/AnthropicAI/status/${tweetId}` } },
++    xPost: { tweetId: `8${Date.now()}`, authorName: "Boris", handle: "bcherny", text: "Try it!", quoted: { authorName: "Anthropic", handle: "AnthropicAI", text: `Claude Sonnet 5.5 を発表しました ${T}`, url: `https://x.com/AnthropicAI/status/${tweetId}` } },
+   });
+   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
+             VALUES (${id}, 1, 'rule', 'pass', 'ai-models', ${`引用-${T}`}, '摘要', '理由', 90, true)`;
+@@ -255,7 +258,7 @@ test("the post a selected X post quotes is translated once and shown with the it
+   assert.deepEqual({ ...q }, { text_zh: "隆重推出 Sonnet 5.5。", origin: "model" });
+   const res = await app.inject({ method: "GET", url: `/api/site/items/${id}` });
+   const item = JSON.parse(res.body) as { x: { quoted: { text: string; translation: string | null } } };
+-  assert.deepEqual([item.x.quoted.text, item.x.quoted.translation], [`Introducing Claude Sonnet 5.5 ${T}`, "隆重推出 Sonnet 5.5。"]);
++  assert.deepEqual([item.x.quoted.text, item.x.quoted.translation], [`Claude Sonnet 5.5 を発表しました ${T}`, "隆重推出 Sonnet 5.5。"]);
+   await translatePending({ limit: 1 });
+   const receipts = await sql<{ status: string }[]>`SELECT status FROM receipts WHERE purpose = 'translate_quoted' AND subject = ${`quote:${tweetId}`}`;
+   assert.equal(receipts.length, 1, "translated once");
+@@ -267,7 +270,7 @@ test("an unusable X translation gets a bounded fresh attempt instead of terminal
+   const marker = `alignment-x-${T}`;
+   const text = `A new model release with practical improvements and detailed availability notes ${marker}. This post explains the new behavior and user-visible changes.`;
+   const { articleId: id } = await upsertMaterial({
+-    sourceId: SOURCE, url: `https://x.com/example/status/9${Date.now()}`, title: `Alignment X ${T}`, language: "en",
++    sourceId: SOURCE, url: `https://x.com/example/status/9${Date.now()}`, title: `Alignment X ${T}`, language: "de",
+     bodyText: text, bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 3_600_000),
+     xPost: { tweetId: `9${Date.now()}`, authorName: "Test", handle: "example", text },
+   });
+@@ -296,7 +299,7 @@ test("fully unusable body translations stop after three recorded attempts", asyn
+   const marker = `alignment-body-${T}`;
+   const text = `One complete English paragraph ${marker} that requires a Chinese translation.`;
+   const { articleId: id } = await upsertMaterial({
+-    sourceId: SOURCE, url: `${URL_}-alignment`, title: `Alignment body ${T}`, language: "en",
++    sourceId: SOURCE, url: `${URL_}-alignment`, title: `Alignment body ${T}`, language: "de",
+     bodyText: text, bodyHtml: `<p>${text}</p>`, bodyStatus: "ok", via: "fetch",
+     publishedAt: new Date(), discoveredAt: new Date(Date.now() + 7_200_000),
+   });
+@@ -323,7 +326,7 @@ test("a received alignment retry survives a failed translation commit without pa
+   const post = `This detailed English announcement ${marker} describes a new public release and its availability. The main changes are supported by documented examples and clear usage notes.`;
+   const tweetId = `9${Date.now()}`;
+   const { articleId: id } = await upsertMaterial({
+-    sourceId: SOURCE, url: `https://x.com/example/status/${tweetId}`, title: `Recovery ${T}`, language: "en",
++    sourceId: SOURCE, url: `https://x.com/example/status/${tweetId}`, title: `Recovery ${T}`, language: "de",
+     bodyText: post, bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 10_800_000),
+     xPost: { tweetId, authorName: "Test", handle: "example", text: post },
+   });
+@@ -371,7 +374,7 @@ test("an overloaded provider and a timed-out request use up no attempts: after t
+   // A timed-out batch leaves its receipt unknown; the next two runs met that receipt again and spent all three
+   // attempts within ten minutes, so the automatic release half an hour later came too late and nothing alerted.
+   const { articleId: id } = await upsertMaterial({
+-    sourceId: SOURCE, url: `${URL_}-timeout`, title: `Timeout ${T}`, language: "en",
++    sourceId: SOURCE, url: `${URL_}-timeout`, title: `Timeout ${T}`, language: "de",
+     bodyText: `A paragraph whose answer is lost ${T}.`, bodyHtml: `<p>A paragraph whose answer is lost ${T}.</p>`,
+     bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 14_400_000),
+   });
+@@ -414,7 +417,7 @@ test("an overloaded provider and a timed-out request use up no attempts: after t
+ // exclude the article, and restoring access must let the next existing run finish it.
+ test("account 429 pauses translation without spending the article attempts", async () => {
+   const { articleId: id } = await upsertMaterial({
+-    sourceId: SOURCE, url: `${URL_}-account`, title: `Account limit ${T}`, language: "en",
++    sourceId: SOURCE, url: `${URL_}-account`, title: `Account limit ${T}`, language: "de",
+     bodyText: `A paragraph waiting for account access ${T}.`, bodyHtml: `<p>A paragraph waiting for account access ${T}.</p>`,
+     bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now()+20_000_000),
+   });
+diff --git a/tests/x-fulltext-license.test.ts b/tests/x-fulltext-license.test.ts
+index c35a5be..1aec4ed 100644
+--- a/tests/x-fulltext-license.test.ts
++++ b/tests/x-fulltext-license.test.ts
+@@ -58,7 +58,8 @@ async function fixture(options: {
+     VALUES (${source}, '许可测试来源', ${kind}, 'T1', ${options.mode ?? "editorial"}, ${options.full ?? false}, ${options.syndicate ?? true}, 'https://example.org/source.png', '2100-01-01')`;
+   // Found, published and released a minute ago: a rolling window that ends at the reader's clock holds it.
+   const minuteAgo = new Date(Date.now() - 60_000);
+-  const { articleId: id } = await upsertMaterial({ sourceId: source, url, title: `Original title ${key}`, language: "en",
++  // HotBrief en-US: English is the reader's language and is not translated, so the original is declared German ("de").
++  const { articleId: id } = await upsertMaterial({ sourceId: source, url, title: `Original title ${key}`, language: "de",
+     bodyText: options.bodyStatus === "none" ? null : main, bodyHtml: options.bodyStatus === "none" ? null : `<p>${main}</p>`,
+     bodyStatus: options.bodyStatus ?? "ok", xPost, via: "fetch", publishedAt: minuteAgo, discoveredAt: minuteAgo });
+   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, tags, score, selected)
+diff --git a/tests/x-original-posts.test.ts b/tests/x-original-posts.test.ts
+index 3c70dd1..fdb8944 100644
+--- a/tests/x-original-posts.test.ts
++++ b/tests/x-original-posts.test.ts
+@@ -104,7 +104,8 @@ test("rebuilding an image-only post replaces historical model replies across pub
+ 
+ test("real text containing links and a fetched X Article keep their normal writing path", async () => {
+   for (const [name, text] of [
+-    ["real-text", "A model adds speech support. https://example.org/release"],
++    // HotBrief en-US: a short English post is already in the reader's language and is its own copy, so the real text is Japanese.
++    ["real-text", "モデルが音声に対応しました。 https://example.org/release"],
+     ["long-article", "https://x.com/i/article/12345"],
+   ]) {
+     const { id } = await post(name!, text!);

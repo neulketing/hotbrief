@@ -15,6 +15,8 @@ No file of the original is modified in this repository's history beyond the upst
 |---|---|
 | `l10n/ko/`, `l10n/en-US/` | Korean and US English versions of the files the original author marks as the place to customize (`site/site.ts`, `site/models.ts`, `site/pages/*.md`, `site/changelog.json`, `site/brand/nameplates/`, `industry/taxonomy.ts`, `industry/topics.json`, `industry/sources.json`, `industry/wording.ts`, all 29 `industry/prompts/*.md`), plus `env.example` |
 | `l10n/patches/ko.patch`, `l10n/patches/en-US.patch` | Translate the Chinese UI strings left in `apps/` and `packages/`, run the site clock on Korea time (Asia/Seoul) or UTC instead of Beijing time, count sentences in Korean/English summaries, and load Korean fonts for share images |
+| `l10n/patches/ko-tests.patch`, `l10n/patches/en-US-tests.patch` | Change the expected values in `tests/` to the edition's (vocabulary, UI text, clock, the edition not translating its own language), so `npm test` passes on each edition as on the original |
+| `l10n/ko/docs/` | Korean translation of the original `docs/` |
 | `l10n/apply.sh` | Copies an edition into place and applies its patch; `l10n/apply.sh revert` restores the original files |
 | `l10n/tools/` | `nameplates.ts` (report mastheads from Noto Sans KR), `zh-inventory.ts` (lists Chinese text left in the engine code) |
 | `l10n/demo/` | Screenshots of the Korean edition running locally |

@@ -81,8 +81,8 @@ docker compose up -d --build
 - DeepSeek is the default model. For Gemini or OpenAI, change `LLM_BASE_URL`, `LLM_MODEL` and `LLM_EXTRA_JSON` in `.env` as the examples show.
 - `l10n/apply.sh en-US --overlay` applies only the copy, sources and prompts and leaves the engine code alone; some UI text and the clock (Beijing time) then stay as in the original.
 - The patch also reads zoneless feed times ("2026-10-14 18:23:32", common in Korean feeds) in the edition's usual source zone instead of the server's, and accepts Gemini's OpenAI-compatible embedding responses, which omit `index` (the original engine discarded them; found while running the demo).
-- `l10n/apply.sh revert` restores the original files (`git checkout -- site industry .env.example apps packages`).
-- Running without Docker, domains and HTTPS, and backups work as in the original [`docs/deploy.md`](../docs/deploy.md) (in Chinese).
+- `l10n/apply.sh revert` restores the original files (`git checkout HEAD -- site industry .env.example apps packages tests`).
+- Running without Docker, domains and HTTPS, and backups work as in the original [`docs/deploy.md`](../docs/deploy.md) (in Chinese); a Korean translation of all of `docs/` is in [`l10n/ko/docs/`](../l10n/ko/docs/).
 
 ## Make it your field
 

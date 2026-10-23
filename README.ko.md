@@ -50,6 +50,8 @@ git clone https://github.com/neulketing/hotbrief.git && cd hotbrief && l10n/appl
 | `l10n/ko/industry/sources.json` | 한국 AI 뉴스 RSS와 해외 공식 출처 16곳. 2026-10-14에 실제로 열리는지 확인했습니다 |
 | `l10n/ko/env.example` | 한국에서 쓰는 설정 예시(`TZ=Asia/Seoul`, Gemini/OpenAI 임베딩) |
 | `l10n/patches/ko.patch` | 엔진 코드(`apps/`, `packages/`)에 남은 중국어 화면 문구 번역, 시계를 한국 시간으로, 한국어 문장 세기, 공유 이미지에 한글 글꼴 |
+| `l10n/patches/ko-tests.patch` | 테스트(`tests/`)의 기대값을 한국어판 값(분류·화면 문구·한국 시간)으로 맞춤. 한국어판에서도 `npm test` 가 원본과 같은 수로 통과 |
+| `l10n/ko/docs/` | 원본 `docs/` 7개 문서의 한국어 번역 |
 
 출처 목록:
 
@@ -100,8 +102,8 @@ docker compose up -d --build
 
 - 기본 모델은 DeepSeek입니다. Gemini나 OpenAI를 쓰려면 `.env` 의 `LLM_BASE_URL`, `LLM_MODEL`, `LLM_EXTRA_JSON` 을 예시대로 바꿉니다.
 - 엔진 코드는 건드리지 않고 문구·출처·프롬프트만 바꾸려면 `l10n/apply.sh ko --overlay`. 이 경우 화면 일부와 시계(베이징 시간)는 원본 그대로입니다.
-- 원래대로 돌리려면 `l10n/apply.sh revert`(= `git checkout -- site industry .env.example apps packages`).
-- Docker 없이 돌리기, 도메인과 HTTPS, 백업은 원본 [`docs/deploy.md`](docs/deploy.md)(중국어)와 같습니다.
+- 원래대로 돌리려면 `l10n/apply.sh revert`(= `git checkout HEAD -- site industry .env.example apps packages tests`).
+- Docker 없이 돌리기, 도메인과 HTTPS, 백업은 원본과 같습니다. 한국어 번역 [`l10n/ko/docs/deploy.md`](l10n/ko/docs/deploy.md)(원문 [`docs/deploy.md`](docs/deploy.md), 중국어). 다른 문서도 [`l10n/ko/docs/`](l10n/ko/docs/)에 있습니다.
 
 ## 내 분야로 바꾸기
 
@@ -110,7 +112,7 @@ docker compose up -d --build
 코딩 에이전트(Claude Code, Codex 등)에게 이렇게 맡기면 됩니다.
 
 ```text
-AGENTS.md, docs/customize.md, README.ko.md를 읽고 이 사이트를 "OO" 분야 뉴스 사이트로 바꿔 줘.
+AGENTS.md, l10n/ko/docs/customize.md, README.ko.md를 읽고 이 사이트를 "OO" 분야 뉴스 사이트로 바꿔 줘.
 l10n/ko/ 아래 파일을 고치고 l10n/apply.sh ko로 적용해.
 내가 신경 쓰는 것: …(볼 출처, 중요한 소식과 아닌 소식, 구체적일수록 좋다)
 끝나면 npm run typecheck, npm test, node scripts/smoke.ts를 돌리고, 아직 내가 정해야 할 것을 알려 줘.

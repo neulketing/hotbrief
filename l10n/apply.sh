@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # HotBrief localization: put the Korean (ko) or US English (en-US) edition in place.
-#   l10n/apply.sh ko|en-US              overlay + app patch (+ Korean fonts for share images, ko only)
+#   l10n/apply.sh ko|en-US              overlay + app and tests patches (+ Korean fonts for share images, ko only)
 #   l10n/apply.sh ko|en-US --overlay    overlay only (site/, industry/, .env.example), engine code untouched
 #   l10n/apply.sh revert                back to the original AIHOT files
 # The overlay copies l10n/<lang>/site/** and l10n/<lang>/industry/** over the files the original author meant to be
 # edited (README.en.md "Make it your field"), and l10n/<lang>/env.example over .env.example.
 # The patch (l10n/patches/<lang>.patch) translates the Chinese UI left in apps/ and packages/ and moves the site clock
-# (ko: Asia/Seoul, en-US: UTC). Nothing is committed: run it on a fresh checkout, before building.
+# (ko: Asia/Seoul, en-US: UTC). l10n/patches/<lang>-tests.patch changes the expected values in tests/ to the edition's
+# (vocabulary, UI text, clock), so npm test passes on the edition as it does on the original.
+# A patch that no longer applies after an upstream update is retried as a 3-way merge against the files it was made from.
+# Nothing is committed: run it on a fresh checkout, before building.
 set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)
@@ -15,7 +18,7 @@ lang=${1:-}
 mode=${2:-}
 
 revert() {
-  git checkout -- site industry .env.example apps packages
+  git checkout HEAD -- site industry .env.example apps packages tests
   rm -f assets/og-fonts/noto-sans-kr-*.otf
   echo "Reverted to the original files."
 }
@@ -26,8 +29,8 @@ case "$lang" in
   *) echo "usage: l10n/apply.sh ko|en-US [--overlay] | revert" >&2; exit 2 ;;
 esac
 
-if ! git diff --quiet -- site industry apps packages .env.example; then
-  echo "site/, industry/, apps/, packages/ or .env.example has local changes; commit them or run l10n/apply.sh revert first." >&2
+if ! git diff --quiet HEAD -- site industry apps packages tests .env.example; then
+  echo "site/, industry/, apps/, packages/, tests/ or .env.example has local changes; commit them or run l10n/apply.sh revert first." >&2
   exit 1
 fi
 
@@ -46,8 +49,12 @@ if [ "$mode" = "--overlay" ]; then
   exit 0
 fi
 
-git apply --whitespace=nowarn "l10n/patches/$lang.patch"
-echo "Patch: l10n/patches/$lang.patch applied."
+apply_patch() {
+  git apply --whitespace=nowarn "$1" 2>/dev/null || { git apply --3way --whitespace=nowarn "$1" && git reset -q -- apps packages tests; }
+  echo "Patch: $1 applied."
+}
+apply_patch "l10n/patches/$lang.patch"
+apply_patch "l10n/patches/$lang-tests.patch"
 
 if [ "$lang" = ko ]; then
   # Share images (satori) need Hangul glyphs; the bundled Noto Sans SC has none. Noto Sans KR, SIL OFL 1.1,

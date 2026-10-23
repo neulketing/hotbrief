@@ -1,0 +1,681 @@
+diff --git a/tests/agent-public.test.ts b/tests/agent-public.test.ts
+index a212439..b2bb2bf 100644
+--- a/tests/agent-public.test.ts
++++ b/tests/agent-public.test.ts
+@@ -38,7 +38,7 @@ test('Agent discovery uses the configured identity, address and categories', asy
+ test('empty answers are explicit and fixed reports include their flash section', () => {
+   const query = {mode:'selected',window:'24h',category:null,limit:10} as const;
+   const res = {schemaVersion:1,query:{...query,by:'timeline',q:null,ordering:'timelineDesc'},items:[],page:{count:0,hasMore:false,nextCursor:null}} as const;
+-  assert.match(latestAnswer({...res,items:[]},query),/没有符合条件/);
++  assert.match(latestAnswer({...res,items:[]},query),/조건에 맞는/);
+   const text = dailyAnswer({date:'2026-09-30',windowStart:'2026-09-29T00:00:00Z',windowEnd:'2026-09-30T00:00:00Z',links:{aihot:'https://example.org/daily/2026-09-30'},lead:null,sections:[],flashes:[{title:'FLASH-MARKER',publishedAt:'2026-09-29T01:00:00Z',source:{name:'Source'},links:{aihot:'https://example.org/items/1',original:'https://source.example/1'}}]},'http');
+-  assert.ok(text.includes('FLASH-MARKER'));assert.ok(text.includes('不可信外部资料'));
++  assert.ok(text.includes('FLASH-MARKER'));assert.ok(text.includes('신뢰할 수 없는 외부 자료'));
+ });
+diff --git a/tests/analyze.test.ts b/tests/analyze.test.ts
+index 11c74aa..f77e6d5 100644
+--- a/tests/analyze.test.ts
++++ b/tests/analyze.test.ts
+@@ -14,6 +14,7 @@ import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
+ import { compactAnswerFirstSummary, enforceIdentity, MAX_BODY_CHARS, parseTranslateOutput } from "@aihot/backend/editorial/writing";
+ import { READER_WORDING } from "@aihot/industry/wording";
+ import { ITEM_TYPES } from "@aihot/industry/taxonomy";
++import { ITEM_COPY } from "@aihot/site";
+ 
+ const T = tag();
+ const SOURCE = `test-analyze-${T}`;
+@@ -58,7 +59,7 @@ const provider = await stub((_hit, req) => {
+     if (marker === "SENSITIVE") return new Reply(400, { contentFilter: [{ level: 1, role: "user" }], error: { code: "1301", message: "系统检测到输入或生成内容可能包含不安全或敏感内容" } });
+     return answer({ itemType: "model_release", authorRole: "principal", tags: ["模型发布", "开源", "Agent", "不存在的标签"], editorialJudgment: `理由 ${marker}`, titleZh: `理解标题 ${marker}`, summaryZh: `理解摘要 ${marker}。第二句补充一个关键数字。` });
+   }
+-  if (step === "structure") return answer({ category: "ai-models", tags: ["模型发布", "推理"], subjects: ["anthropic", "unknown-co"], scope: "single", fact: { title: `事实 ${marker}`, subject: "某公司", action: "发布", object: "模型", occurredAt: null, evidence: "a lab released a model", conditions: [] } });
++  if (step === "structure") return answer({ category: "ai-models", /* HotBrief ko: the edition's tags */ tags: ["모델 출시", "추론"], subjects: ["anthropic", "unknown-co"], scope: "single", fact: { title: `事实 ${marker}`, subject: "某公司", action: "发布", object: "模型", occurredAt: null, evidence: "a lab released a model", conditions: [] } });
+   return answer(`title_zh: 翻译标题 ${marker}\nsummary_zh: 翻译摘要 ${marker}。第二句补充影响。`);
+ });
+ pointModels(provider.url);
+@@ -95,7 +96,7 @@ test("a selected item: prefilter, two scores, the content understanding and the
+   const r = await row(id);
+   assert.deepEqual([r.title_zh, r.reason_zh, r.category, r.receipt_ids.length], ["理解标题 CLEAR", "理由 CLEAR", "ai-models", 5]);
+   // Failure case: the writer's independent labels contradict the structural category.
+-  assert.deepEqual(r.tags, ["模型发布", "推理", "Anthropic"], "category and tags come from the same structural judgement, plus the verified subject tag");
++  assert.deepEqual(r.tags, ["모델 출시", "추론", "Anthropic"], "category and tags come from the same structural judgement, plus the verified subject tag");
+   assert.deepEqual(r.subjects, ["anthropic"]);
+   assert.deepEqual([r.output.writer, r.output.itemType, r.output.prefilter.label, r.output.fact.title], ["understand", "model_release", "PASS", "事实 CLEAR"]);
+   assert.equal(r.output.scope, "single");
+@@ -114,7 +115,7 @@ test("a word the site keeps from readers goes back once to be changed; copy with
+     const r = await row(id);
+     assert.deepEqual([r.title_zh, r.reason_zh], ["标题里换了说法 WORDY", "理由里换了说法 WORDY"], "the mended copy is stored");
+     const sent = requests.find((q) => q.marker === "WORDY" && q.step === "wording")!;
+-    assert.ok(sent.user.includes("标题用了“禁用词”") && sent.user.includes("推荐理由用了“禁用词”"), "each use named");
++    assert.ok(sent.user.includes("제목의 “禁用词”") && sent.user.includes(`${ITEM_COPY.reasonLabel}의 “禁用词”`), "each use named");
+     assert.ok(!requests.some((q) => q.step === "wording" && q.marker !== "WORDY"), "the other items' copy uses none");
+   } finally {
+     (READER_WORDING as Array<readonly [RegExp, string]>).pop();
+@@ -179,7 +180,7 @@ test("a near-selected item is written like a selected one; below the floor it is
+   const low = await analyzeArticle(lowId);
+   assert.deepEqual([low!.output!.selected, low!.output!.titleZh, low!.output!.reasonZh], [false, "翻译标题 LOW", null]);
+   assert.deepEqual(calls("LOW").sort(), ["prefilter", "score", "score", "structure", "summarize"]);
+-  assert.deepEqual((await row(lowId)).tags, ["模型发布", "推理", "Anthropic"], "structure tags");
++  assert.deepEqual((await row(lowId)).tags, ["모델 출시", "추론", "Anthropic"], "structure tags");
+ });
+ 
+ test("the prefilter's BLOCK stops everything; UNKNOWN with material goes on like PASS", async () => {
+@@ -216,7 +217,8 @@ test("a feed summary alone: the article page is fetched first, then the whole ar
+ 
+ test("a short post in Chinese is its own copy; a content-filter refusal is translated instead", async () => {
+   // The tag rides as a hashtag, which the language check strips.
+-  const text = `推文：今天把智能体接进了工作流，效果不错。#t${T}`;
++  // HotBrief ko: a short post in the reader's language (Korean) is its own copy; 推文 stays as the stub's marker.
++  const text = `推文: 오늘 에이전트를 업무 흐름에 붙였는데 효과가 좋다. #t${T}`;
+   const { articleId } = await upsertMaterial({
+     sourceId: X_SOURCE, url: `https://x.com/test/status/1${Date.now()}`, title: text, via: "fetch", publishedAt: new Date(),
+     xPost: { tweetId: `1${Date.now()}`, authorName: "测试", handle: "test", text },
+@@ -230,9 +232,10 @@ test("a short post in Chinese is its own copy; a content-filter refusal is trans
+ });
+ 
+ test("guards: a company the input does not name is not written in; long summaries are cut at sentences", () => {
+-  const input = { title: "某实验室发布新模型", text: "某实验室发布了一个新模型，参数规模和价格都有说明。", sourceKind: "rss" };
+-  const guarded = enforceIdentity(input, { titleZh: "OpenAI 发布新模型", summaryZh: "某实验室发布新模型。" });
+-  assert.deepEqual([guarded.titleZh, guarded.summaryZh, guarded.identityGuard.outcome], ["某实验室发布新模型", "某实验室发布新模型。", "fallback"]);
++  // HotBrief ko: the fallback title is the original only when it is in the reader's language, so the input is Korean.
++  const input = { title: "한 연구소가 새 모델 공개", text: "한 연구소가 새 모델을 공개했고, 파라미터 규모와 가격도 밝혔다.", sourceKind: "rss" };
++  const guarded = enforceIdentity(input, { titleZh: "OpenAI, 새 모델 공개", summaryZh: "한 연구소가 새 모델을 공개했다." });
++  assert.deepEqual([guarded.titleZh, guarded.summaryZh, guarded.identityGuard.outcome], ["한 연구소가 새 모델 공개", "한 연구소가 새 모델을 공개했다.", "fallback"]);
+   // The identity lexicon: a Chinese rendering of a company the input names in English is no invention.
+   const alibaba = { title: "Alibaba ships a new coding model", text: "Alibaba released a coding model with pricing details.", sourceKind: "rss" };
+   assert.equal(enforceIdentity(alibaba, { titleZh: "阿里巴巴发布编程模型", summaryZh: "阿里巴巴发布了编程模型并公布价格。" }).identityGuard.outcome, "pass");
+diff --git a/tests/architecture.test.ts b/tests/architecture.test.ts
+index 5800a4e..c330c4a 100644
+--- a/tests/architecture.test.ts
++++ b/tests/architecture.test.ts
+@@ -168,10 +168,11 @@ test("every environment variable the code reads is listed in a template, and eve
+ // copy kept milliseconds and one did not, one threw on a 13th month, one formatted through a locale.
+ // Caught: offset arithmetic, a zone glued onto an interpolated date or time, Intl or SQL given the zone's
+ // name. A fixed instant written with its zone, or a parser's default zone, converts nothing.
++// HotBrief ko: the site clock is Asia/Seoul (UTC+9), so a conversion of either clock counts.
+ const convertsBeijingTime = (line: string) =>
+-  /(?<![\d.])8 ?\* ?(?:3_?600|60 ?\* ?60)/.test(line)
+-  || (line.includes("+08:00") && line.includes("${"))
+-  || /(?:timeZone:|AT TIME ZONE) ?["']Asia\/Shanghai/.test(line);
++  /(?<![\d.])[89] ?\* ?(?:3_?600|60 ?\* ?60)/.test(line)
++  || (/\+0[89]:00/.test(line) && line.includes("${"))
++  || /(?:timeZone:|AT TIME ZONE) ?["']Asia\/(?:Shanghai|Seoul)/.test(line);
+ const CONVERTS_BEIJING_TIME: Record<string, string> = {
+   "packages/contracts/src/time.ts": "the conversions themselves",
+   "packages/backend/src/editorial/analyze.ts": "the score input keeps the form its prompt was tuned on (whole seconds without .000)",
+diff --git a/tests/category-corrections.test.ts b/tests/category-corrections.test.ts
+index 101b800..1266422 100644
+--- a/tests/category-corrections.test.ts
++++ b/tests/category-corrections.test.ts
+@@ -14,10 +14,11 @@ import { QUEUES, getBoss, stopBoss } from "@aihot/backend/jobs/queue";
+ 
+ after(async () => { await stopBoss(); await closeDb(); });
+ 
++// HotBrief ko: tags and section names are the edition's (l10n/ko/industry/taxonomy.ts).
+ test("new models require a launch classification as well as an official, new model event", () => {
+-  const base = { category: "ai-models", tags: ["模型发布"], authority: 0, previous: null,
++  const base = { category: "ai-models", tags: ["모델 출시"], authority: 0, previous: null,
+     entry: { sourceId: "official", firstParty: true } } as EditionEntry;
+-  const rows = [base, { ...base, tags: ["评测/基准"] }, { ...base, tags: ["产品更新"] },
++  const rows = [base, { ...base, tags: ["평가/벤치마크"] }, { ...base, tags: ["제품 업데이트"] },
+     { ...base, category: "ai-products" }, { ...base, authority: 3 },
+     { ...base, previous: { key: "2026-09-30", title: "已报过的发布" } }, { ...base, tags: [] }];
+   assert.equal(dailyMetrics(rows).modelsReleased, 1);
+@@ -30,20 +31,20 @@ test("category corrections revise every standard report atomically without selec
+   await sql`INSERT INTO sources (id,name,kind,tier,participation_mode) VALUES (${sourceId},'Category fixture','rss','T1','editorial')`;
+   const { articleId } = await upsertMaterial({ sourceId, url: `https://example.com/${sourceId}`, title: "开源推理工具", bodyText: "工具正文", bodyStatus: "ok", via: "fetch", publishedAt: new Date() });
+   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,tags,title_zh,summary_zh,score,selected)
+-    VALUES (${articleId},1,'rule','pass','ai-models',ARRAY['模型发布','DeepSeek'],'开源推理工具','冻结摘要',88,true)`;
++    VALUES (${articleId},1,'rule','pass','ai-models',ARRAY['모델 출시','DeepSeek'],'开源推理工具','冻结摘要',88,true)`;
+   const [story] = await sql`INSERT INTO stories (public_id,title) VALUES (gen_random_uuid(),'工具事件') RETURNING id`;
+   const [fact] = await sql`INSERT INTO facts (public_id,title,story_id) VALUES (${`f-${tag()}`},'工具发布',${story!.id}) RETURNING id`;
+   await sql`INSERT INTO fact_articles (fact_id,article_id,role) VALUES (${fact!.id},${articleId},'report')`;
+   await publishArticle(articleId, { releasedAt: new Date() });
+   const entry = { itemId: articleId, title: "冻结标题", summary: "冻结摘要", sourceId, firstParty: true, role: "官方" };
+   const contents = [
+-    { kind: "daily", key: "2097-01-02", content: { leadItemId: articleId, lead: { title: "冻结头条" }, highlights: [articleId], flashes: [], sections: [{ label: "模型发布/更新", items: [entry] }], metrics: { totalEvents: 1, modelsReleased: 1 } } },
+-    ...(["weekly", "monthly"] as const).map(kind => ({ kind, key: kind === "weekly" ? "2097-W01" : "2097-01", content: { headline: "冻结头条", leadItemId: articleId, storyOrder: [articleId], overview: "保留总述", themes: [{ heading: "模型发布/更新", summary: "旧模型导读", storyRefs: [entry] }], metrics: { totalStories: 1 } } })),
++    { kind: "daily", key: "2097-01-02", content: { leadItemId: articleId, lead: { title: "冻结头条" }, highlights: [articleId], flashes: [], sections: [{ label: "모델 출시·업데이트", items: [entry] }], metrics: { totalEvents: 1, modelsReleased: 1 } } },
++    ...(["weekly", "monthly"] as const).map(kind => ({ kind, key: kind === "weekly" ? "2097-W01" : "2097-01", content: { headline: "冻结头条", leadItemId: articleId, storyOrder: [articleId], overview: "保留总述", themes: [{ heading: "모델 출시·업데이트", summary: "旧模型导读", storyRefs: [entry] }], metrics: { totalStories: 1 } } })),
+   ];
+   for (const r of contents) await sql`INSERT INTO reports (kind,key,window_start,window_end,content,generated_at,origin)
+     VALUES (${r.kind},${r.key},now(),now(),${sql.json(r.content as never)},now(),'imported')`;
+   const [before] = await sql`SELECT selected,seat,score,visible_after,selected_ready_at FROM publications WHERE article_id=${articleId}`;
+-  const change = (actor: string) => overrideFields(articleId, { fields: { category: "ai-products", tags: ["开源/仓库", "DeepSeek"] }, version: 0, reason: "工具不是模型" }, actor);
++  const change = (actor: string) => overrideFields(articleId, { fields: { category: "ai-products", tags: ["오픈소스/저장소", "DeepSeek"] }, version: 0, reason: "工具不是模型" }, actor);
+   await sql.unsafe(`CREATE FUNCTION reject_category_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+     IF NEW.actor = 'reject-category' THEN RAISE EXCEPTION 'category audit rejected'; END IF; RETURN NEW; END $$`);
+   await sql.unsafe("CREATE TRIGGER reject_category_audit BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION reject_category_audit()");
+@@ -62,12 +63,12 @@ test("category corrections revise every standard report atomically without selec
+     const c = saved!.content;
+     assert.equal(c.leadItemId, articleId);
+     if (r.kind === "daily") {
+-      assert.deepEqual(c.sections, [{ label: "产品发布/更新", items: [entry] }]);
++      assert.deepEqual(c.sections, [{ label: "제품 출시·업데이트", items: [entry] }]);
+       assert.equal(c.metrics.modelsReleased, 0);
+       assert.deepEqual(c.highlights, [articleId]);
+       assert.equal(c.lead.title, "冻结头条");
+     } else {
+-      assert.deepEqual(c.themes, [{ heading: "产品发布/更新", summary: null, storyRefs: [entry] }]);
++      assert.deepEqual(c.themes, [{ heading: "제품 출시·업데이트", summary: null, storyRefs: [entry] }]);
+       assert.deepEqual(c.storyOrder, [articleId]);
+       assert.equal(c.overview, "保留总述");
+     }
+@@ -76,6 +77,6 @@ test("category corrections revise every standard report atomically without selec
+   assert.equal((await sql`SELECT count(*)::int AS n FROM pgboss.job WHERE name=${QUEUES.digest}`)[0]!.n, digestCount);
+   await overrideFields(articleId, { fields: {}, clear: ["category", "tags"], version: 1, reason: "验证撤销纠错" }, "test-category");
+   const [restored] = await sql`SELECT content FROM reports WHERE kind='daily' AND key='2097-01-02'`;
+-  assert.equal(restored!.content.sections[0].label, "模型发布/更新");
++  assert.equal(restored!.content.sections[0].label, "모델 출시·업데이트");
+   assert.equal(restored!.content.metrics.modelsReleased, 1);
+ });
+diff --git a/tests/extraction-consistency.test.ts b/tests/extraction-consistency.test.ts
+index de4a4fe..2b2e76b 100644
+--- a/tests/extraction-consistency.test.ts
++++ b/tests/extraction-consistency.test.ts
+@@ -121,8 +121,8 @@ test("an audited presentation refresh previews and applies only the reviewed lay
+   presentationHtml = `<p>${body} The actual model price has changed.</p>`;
+   const semantic = await rerun(articleId, "presentation", "preview-wording", "test", { preview: true });
+   assert.ok(semantic && "ready" in semantic && !semantic.ready);
+-  assert.match(semantic.reason ?? "", /文字/);
+-  await assert.rejects(rerun(articleId, "presentation", "apply-wording", "test", { version: preview.version }), /预览|变化|文字/);
++  assert.match(semantic.reason ?? "", /본문 글/);
++  await assert.rejects(rerun(articleId, "presentation", "apply-wording", "test", { version: preview.version }), /미리 보|바뀌|본문 글/);
+ });
+ 
+ test("an audited RSS presentation refresh uses the source body without substituting the web-page wording", async () => {
+diff --git a/tests/feedback-email-ban.test.ts b/tests/feedback-email-ban.test.ts
+index bcce94d..4245cc1 100644
+--- a/tests/feedback-email-ban.test.ts
++++ b/tests/feedback-email-ban.test.ts
+@@ -47,7 +47,7 @@ test("email moderation does not block shared domains, anonymous security reports
+   const accepted = await submitFeedback({ ...base, email: "other-reader@example.com" });
+   assert.ok(accepted.id);
+   assert.ok((await submitFeedback({ ...base, content: base.content + " anonymous" })).id);
+-  await assert.rejects(banFeedbackEmail((await submitFeedback({ ...base, content: "no contact" })).id, "reason", "test"), /没有可封禁的邮箱/);
++  await assert.rejects(banFeedbackEmail((await submitFeedback({ ...base, content: "no contact" })).id, "reason", "test"), /차단할 이메일이 없습니다/);
+   const forged = { ...base, ip: "203.0.113.237", email: "victim@example.com" };
+   for (let i = 0; i < 20; i++) await submitFeedback(forged);
+   await assert.rejects(submitFeedback(forged), e => e instanceof FeedbackRejected && e.status === 429);
+diff --git a/tests/jina-listing.test.ts b/tests/jina-listing.test.ts
+index 48fa0f4..691f7d7 100644
+--- a/tests/jina-listing.test.ts
++++ b/tests/jina-listing.test.ts
+@@ -99,7 +99,8 @@ test("a listing parsed with selectors is read from Jina as rendered HTML, dates
+   assert.equal(run.status, "ok", run.error ?? "");
+   const [post] = await sql<{ title: string; published_at: Date; publication_time: string }[]>`SELECT title, published_at, publication_time FROM articles WHERE source_id = ${id}`;
+   assert.equal(post?.title, `Rendered ${T}`);
+-  assert.equal(post?.published_at.toISOString(), "2026-09-22T16:00:00.000Z");
++  // HotBrief ko: a source without its own offset reads dates at midnight in Asia/Seoul (+09:00).
++  assert.equal(post?.published_at.toISOString(), "2026-09-22T15:00:00.000Z");
+   assert.equal(post?.publication_time, "2026-09-23");
+ });
+ 
+@@ -115,7 +116,8 @@ test("a JSON listing embedded in a page is read from Jina as rendered HTML", asy
+   const [post] = await sql<{ title: string; url: string; published_at: Date; publication_time: string }[]>`SELECT title, url, published_at, publication_time FROM articles WHERE source_id = ${id}`;
+   assert.equal(post?.title, `Embedded ${T}`);
+   assert.equal(post?.url, `https://example.org/articles/embedded-${T}`);
+-  assert.equal(post?.published_at.toISOString(), "2026-09-23T16:00:00.000Z");
++  // HotBrief ko: midnight in Asia/Seoul (+09:00), the default source offset.
++  assert.equal(post?.published_at.toISOString(), "2026-09-23T15:00:00.000Z");
+   assert.equal(post?.publication_time, "2026-09-24");
+   assert.equal((await sql`SELECT 1 FROM receipts WHERE subject = ${`source:${id}`} AND service = 'jina'`).length, 1);
+ });
+diff --git a/tests/listings.test.ts b/tests/listings.test.ts
+index df9130b..d761ebd 100644
+--- a/tests/listings.test.ts
++++ b/tests/listings.test.ts
+@@ -110,11 +110,12 @@ test("a changelog's date headings date its updates and are no articles themselve
+     SELECT url, title, published_at FROM articles WHERE source_id = ${CHANGELOG_SOURCE} ORDER BY published_at DESC, url`;
+   assert.deepEqual(
+     rows.map((r) => [decodeURIComponent(r.url.replace(/^.*#/, "#")), r.title.replace(` ${T}`, ""), r.published_at?.toISOString()]),
++    // HotBrief ko: a date heading is midnight in Asia/Seoul (+09:00), the default source offset.
+     [
+-      ["#deepseek-v41-flash-发布", "DeepSeek-V4.1-Flash 发布", "2026-09-09T16:00:00.000Z"],
+-      ["#deepseek-v32", "DeepSeek-V3.2", "2025-11-30T16:00:00.000Z"],
+-      ["#deepseek-v32-speciale", "DeepSeek-V3.2-Speciale", "2025-11-30T16:00:00.000Z"],
+-      ["#deepseek-chat-4", "deepseek-chat", "2024-05-16T16:00:00.000Z"],
++      ["#deepseek-v41-flash-发布", "DeepSeek-V4.1-Flash 发布", "2026-09-09T15:00:00.000Z"],
++      ["#deepseek-v32", "DeepSeek-V3.2", "2025-11-30T15:00:00.000Z"],
++      ["#deepseek-v32-speciale", "DeepSeek-V3.2-Speciale", "2025-11-30T15:00:00.000Z"],
++      ["#deepseek-chat-4", "deepseek-chat", "2024-05-16T15:00:00.000Z"],
+     ],
+   );
+ });
+diff --git a/tests/page-metadata.standalone.test.ts b/tests/page-metadata.standalone.test.ts
+index 86885dd..99c909f 100644
+--- a/tests/page-metadata.standalone.test.ts
++++ b/tests/page-metadata.standalone.test.ts
+@@ -73,16 +73,17 @@ test("ordinary feed pages remain indexable and normalize ignored parameters", as
+     const $ = await page(requested!);
+     assert.equal($("meta[name=robots]").attr("content"), undefined);
+     assert.equal($("link[rel=canonical]").attr("href"), `${web.origin}${canonical}`);
+-    if (canonical?.includes("page=2")) assert.match($("title").text(), /第 2 页/);
++    if (canonical?.includes("page=2")) assert.match($("title").text(), /2쪽/);
+   }
+ });
+ 
+ // Chinese readers search issues by the date as they write it ("10月4日 AI 新闻"), not by the key.
+-for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly", "周报", "9月28日—10月4日"], ["monthly", "月报", "2026年10月"]] as const) {
++// HotBrief ko: Korean report names, dates ("10월 4일") and title punctuation (" | ", ": ").
++for (const [kind, label, date] of [["daily", "일간 브리핑", "10월 4일"], ["weekly", "주간 브리핑", "9월 28일—10월 4일"], ["monthly", "월간 브리핑", "2026년 10월"]] as const) {
+   test(`${kind} issue metadata describes its visible lead while the permanent entry keeps its title`, async () => {
+     const r = report(kind);
+     const $ = await page(`/${kind}/${r.key}`);
+-    const title = `${withSubject(label)}｜${date}：${r.lead!.title}`;
++    const title = `${withSubject(label)} | ${date}: ${r.lead!.title}`;
+     assert.equal($("title").text(), `${title} · ${SITE.name}`);
+     assert.equal($("meta[property='og:title']").attr("content"), title);
+     assert.ok($("main").text().includes(r.lead!.title));
+@@ -96,10 +97,11 @@ for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly",
+ }
+ 
+ test("an issue's date reads as Chinese readers write it, across months and years", () => {
+-  assert.equal(reportDateLabel("daily", "2026-10-17"), "10月17日");
+-  assert.equal(reportDateLabel("weekly", "2026-W42"), "10月12日—18日");
+-  assert.equal(reportDateLabel("weekly", "2026-W53"), "12月28日—1月3日");
+-  assert.equal(reportDateLabel("monthly", "2026-01"), "2026年1月");
++  // HotBrief ko: dates as Korean readers write them.
++  assert.equal(reportDateLabel("daily", "2026-10-17"), "10월 17일");
++  assert.equal(reportDateLabel("weekly", "2026-W42"), "10월 12일—18일");
++  assert.equal(reportDateLabel("weekly", "2026-W53"), "12월 28일—1월 3일");
++  assert.equal(reportDateLabel("monthly", "2026-01"), "2026년 1월");
+ });
+ 
+ test("a report without an edited lead uses only a still-public visible highlight", () => {
+diff --git a/tests/publication-date-correction.test.ts b/tests/publication-date-correction.test.ts
+index ca0b918..65f7fb6 100644
+--- a/tests/publication-date-correction.test.ts
++++ b/tests/publication-date-correction.test.ts
+@@ -87,22 +87,22 @@ test('the request is idempotent and a reused request identity cannot approve a d
+   const input={version:plan.version,hash:plan.hash,publishedAt:corrected,requestId:`date-${id}`,reason:'Verified original date'};
+   const first=await correctPublicationDate(id,input,'test');
+   assert.deepEqual(await correctPublicationDate(id,input,'test'),first);
+-  await assert.rejects(correctPublicationDate(id,{...input,publishedAt:'2020-11-02T00:00:00.000Z'},'test'),/request|请求|日期/);
++  await assert.rejects(correctPublicationDate(id,{...input,publishedAt:'2020-11-02T00:00:00.000Z'},'test'),/request|요청|날짜/);
+   assert.equal((await sql`SELECT 1 FROM audit_log WHERE subject=${`content:${id}`} AND action='content.correct-publication-date'`).length,1);
+ });
+ 
+ test('malformed, recent or future dates and stale material metadata are refused',async()=>{
+   const id=await fixture();
+   for(const value of ['2020-10-29','2020-02-30T00:00:00.000Z',new Date(Date.now()-86400000).toISOString(),new Date(Date.now()+86400000).toISOString()])
+-    await assert.rejects(previewPublicationDateCorrection(id,value),/ISO|日期|历史|future|recent|historical/);
++    await assert.rejects(previewPublicationDateCorrection(id,value),/ISO|날짜|지난|미래|future|recent|historical/);
+   const plan=(await previewPublicationDateCorrection(id,corrected))!;
+   const input={version:plan.version,hash:plan.hash,publishedAt:corrected,requestId:`stale-${id}`,reason:'Verified original date'};
+-  await assert.rejects(correctPublicationDate(id,{...input,version:plan.version+1},'test'),/修改|版本|changed/);
++  await assert.rejects(correctPublicationDate(id,{...input,version:plan.version+1},'test'),/바뀌었|버전|changed/);
+   await sql`UPDATE articles SET updated_at=updated_at+interval '1 second' WHERE id=${id}`;
+-  await assert.rejects(correctPublicationDate(id,input,'test'),/修改|版本|changed/);
++  await assert.rejects(correctPublicationDate(id,input,'test'),/바뀌었|버전|changed/);
+   const refreshed=(await previewPublicationDateCorrection(id,corrected))!;
+   await sql`UPDATE articles SET url=url||'-changed' WHERE id=${id}`;
+-  await assert.rejects(correctPublicationDate(id,{...input,hash:refreshed.hash},'test'),/修改|版本|changed/);
++  await assert.rejects(correctPublicationDate(id,{...input,hash:refreshed.hash},'test'),/바뀌었|버전|changed/);
+   assert.equal((await sql`SELECT 1 FROM audit_log WHERE subject=${`content:${id}`} AND action='content.correct-publication-date'`).length,0);
+ });
+ 
+@@ -111,7 +111,7 @@ test('a changed publication decision refuses the whole correction',async()=>{
+   const snapshot=async()=>({a:await sql`SELECT * FROM articles WHERE id=${id}`,p:await sql`SELECT * FROM publications WHERE article_id=${id}`,ledger:await sql`SELECT * FROM selected_ledger WHERE article_id=${id}`});
+   const before=await snapshot();
+   await sql`UPDATE editorial_overrides SET fields='{"selected":false}'::jsonb WHERE article_id=${id}`;
+-  await assert.rejects(correctPublicationDate(id,{version:plan.version,hash:plan.hash,publishedAt:corrected,requestId:`decision-${id}`,reason:'Verified byline'},'test'),/公开|选稿|decision/);
++  await assert.rejects(correctPublicationDate(id,{version:plan.version,hash:plan.hash,publishedAt:corrected,requestId:`decision-${id}`,reason:'Verified byline'},'test'),/공개|선정|decision/);
+   assert.deepEqual(await snapshot(),before);
+ });
+ 
+@@ -165,10 +165,10 @@ for(const [change,publishedAt] of [['archiving',corrected],['retracting',null]]
+   await sql`INSERT INTO grouping_overrides(article_id,reason,actor) VALUES(${id},'Reviewed grouping','test')`;
+   const plan=(await previewPublicationDateCorrection(id,publishedAt))!;
+   const input={version:plan.version,hash:plan.hash,publishedAt,requestId:`${change}-${id}`,reason:'Verified original publication'};
+-  await assert.rejects(correctPublicationDate(id,input,'test'),/人工/);
++  await assert.rejects(correctPublicationDate(id,input,'test'),/사람이 묶은/);
+   await sql`DELETE FROM grouping_overrides WHERE article_id=${id}`;
+   await sql`UPDATE articles SET grouping_status='pending' WHERE id=${id}`;
+-  await assert.rejects(correctPublicationDate(id,input,'test'),/处理/);
++  await assert.rejects(correctPublicationDate(id,input,'test'),/처리/);
+   assert.equal((await sql`SELECT backfill FROM articles WHERE id=${id}`)[0]!.backfill,false);
+ });
+ 
+@@ -207,7 +207,7 @@ test('recent date correction refuses a later timestamp beyond the discovery tole
+   const id=await misdatedFixture();
+   const discoveredAt=new Date(Date.now()-6*3600_000);
+   await sql`UPDATE articles SET discovered_at=${discoveredAt},published_at=${discoveredAt},published_at_claim=${discoveredAt},timeline_at=${discoveredAt} WHERE id=${id}`;
+-  await assert.rejects(previewPublicationDateCorrection(id,new Date(Date.now()-3600_000).toISOString()),/一小时|收录/);
++  await assert.rejects(previewPublicationDateCorrection(id,new Date(Date.now()-3600_000).toISOString()),/1시간|수집/);
+   const [a]=await sql`SELECT published_at FROM articles WHERE id=${id}`;
+   assert.equal(a!.published_at.toISOString(),discoveredAt.toISOString());
+ });
+@@ -245,7 +245,7 @@ test('retracting a proven repost date removes live evidence while retaining mate
+ test('retraction preserves imported history',async()=>{
+   const history=await fixture();
+   await sql`UPDATE articles SET backfill=true,backfill_reason='first-import',discovered_at=published_at+interval '30 days' WHERE id=${history}`;
+-  await assert.rejects(previewPublicationDateCorrection(history,null),/历史/);
++  await assert.rejects(previewPublicationDateCorrection(history,null),/지난 글/);
+ });
+ 
+ // A judgement that finished without grouping (blocked, or relevance unknown) is not active processing.
+diff --git a/tests/publication-time.test.ts b/tests/publication-time.test.ts
+index 4278a90..5356aa4 100644
+--- a/tests/publication-time.test.ts
++++ b/tests/publication-time.test.ts
+@@ -41,9 +41,9 @@ const get = async (url: string) => {
+ 
+ test("the Markdown export names the collection time as such when the publication time is unknown", async () => {
+   const undated = await get(`/items/${ids.undated}/markdown`);
+-  assert.ok(undated.includes(`- 收录时间：${discovered.toISOString()}`));
+-  assert.ok(!undated.includes("发布时间"));
+-  assert.ok((await get(`/items/${ids.dated}/markdown`)).includes(`- 发布时间：${published.toISOString()}`));
++  assert.ok(undated.includes(`- 수집 시각: ${discovered.toISOString()}`));
++  assert.ok(!undated.includes("발행 시각"));
++  assert.ok((await get(`/items/${ids.dated}/markdown`)).includes(`- 발행 시각: ${published.toISOString()}`));
+ });
+ 
+ test("RSS gives no pubDate for an item without a known publication time", async () => {
+diff --git a/tests/report-outlets.test.ts b/tests/report-outlets.test.ts
+index f7700fd..a568739 100644
+--- a/tests/report-outlets.test.ts
++++ b/tests/report-outlets.test.ts
+@@ -122,7 +122,7 @@ test('a daily citation without a frozen summary, and a flash with an earlier fro
+ test('discovery counts exactly the publicly indexed topics it lists', () => {
+   const text = llmsTxt({ hasDailies: false, hasWeekly: false, hasMonthly: false, topics: [{ slug: 'sample', name: 'Example', definition: 'Example topic' }], tools: [],
+     modules: { api: [], pace: [], pages: [], topics: [], access: [], usage: [], guideClients: [], ways: [] } });
+-  assert.match(text, /（1 个主题，下一节逐个列出）/);
++  assert.match(text, /\(주제 1개, 다음 절에 하나씩 나열\)/);
+ });
+ 
+ // A saved overview/section introduction can still repeat the withdrawn citation after the list and
+diff --git a/tests/selected-card.test.ts b/tests/selected-card.test.ts
+index 0ea8b50..fbc7168 100644
+--- a/tests/selected-card.test.ts
++++ b/tests/selected-card.test.ts
+@@ -52,10 +52,10 @@ test("the title is larger than the summary, followed by the source and Beijing d
+   for (const end of ["default", "pc", "mobile"]) assert.match(size[end], /^heading-[34]$/, "18px on computers, 16px on phones");
+   assert.equal(summary.text_size ?? "normal", "normal");
+   assert.equal(summary.content, "官方演示了团队协作用法。");
+-  assert.deepEqual([meta.text_size, meta.content], ["notation", "<font color='grey'>ChatGPT · 10月15日发布</font>"]);
++  assert.deepEqual([meta.text_size, meta.content], ["notation", "<font color='grey'>ChatGPT · 10월 15일 발행</font>"]);
+   assert.deepEqual([reason.text_size, reason.content], ["notation", `<font color='grey'>**${ITEM_COPY.reasonLabel}**　官方演示了 Space 的协作用法。</font>`]);
+   const links = buttons.columns.map((c: any) => c.elements[0]);
+-  assert.deepEqual(links.map((b: any) => b.text.content), [`在 ${SITE.name} 阅读`, "原文"]);
++  assert.deepEqual(links.map((b: any) => b.text.content), [`${SITE.name}에서 읽기`, "원문"]);
+   assert.ok(links.every((b: any) => b.behaviors[0].type === "open_url" && b.behaviors[0].default_url.startsWith("https://")));
+   assert.doesNotMatch(JSON.stringify(card), /来源：/);
+ });
+diff --git a/tests/source-dates.standalone.test.ts b/tests/source-dates.standalone.test.ts
+index 0411142..b0cf47e 100644
+--- a/tests/source-dates.standalone.test.ts
++++ b/tests/source-dates.standalone.test.ts
+@@ -7,21 +7,22 @@ import { describeReport } from "@aihot/backend/events/relate";
+ import { readable } from "@aihot/backend/content/extract";
+ import { parseLooseDate, readPublicationDate, describePublicationTime } from "@aihot/backend/sources/dates";
+ 
++// HotBrief ko: a source without its own offset is read in the site clock, Asia/Seoul (+09:00), not +08:00.
+ const iso = (v: string, offset?: string) => parseLooseDate(v, offset)?.toISOString() ?? null;
+ 
+ test("a date and time without a zone is in the source's offset, not the server's", () => {
+-  assert.equal(iso("2026-09-26 10:00"), "2026-09-26T02:00:00.000Z");
+-  assert.equal(iso("2026-09-26T10:00:00"), "2026-09-26T02:00:00.000Z");
+-  assert.equal(iso("2026/09/26 10:00"), "2026-09-26T02:00:00.000Z");
+-  assert.equal(iso("2026年9月26日 10:00"), "2026-09-26T02:00:00.000Z");
++  assert.equal(iso("2026-09-26 10:00"), "2026-09-26T01:00:00.000Z");
++  assert.equal(iso("2026-09-26T10:00:00"), "2026-09-26T01:00:00.000Z");
++  assert.equal(iso("2026/09/26 10:00"), "2026-09-26T01:00:00.000Z");
++  assert.equal(iso("2026年9月26日 10:00"), "2026-09-26T01:00:00.000Z");
+   assert.equal(iso("2026-09-26 10:00", "-07:00"), "2026-09-26T17:00:00.000Z");
+ });
+ 
+ test("a bare date is midnight in the source's offset, including ISO date-only text", () => {
+-  assert.equal(iso("2026/09/26"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("2026年9月26日"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("Sep 26, 2026"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("2026-09-26"), "2026-09-25T16:00:00.000Z");
++  assert.equal(iso("2026/09/26"), "2026-09-25T15:00:00.000Z");
++  assert.equal(iso("2026年9月26日"), "2026-09-25T15:00:00.000Z");
++  assert.equal(iso("Sep 26, 2026"), "2026-09-25T15:00:00.000Z");
++  assert.equal(iso("2026-09-26"), "2026-09-25T15:00:00.000Z");
+   assert.equal(iso("September 26th, 2026", "+00:00"), "2026-09-26T00:00:00.000Z");
+ });
+ 
+@@ -38,19 +39,19 @@ test("no date at all is null", () => {
+ });
+ 
+ test('"at" between the date and the time joins them like a space', () => {
+-  assert.equal(iso("Sep 26, 2026 at 10:30"), "2026-09-26T02:30:00.000Z");
+-  assert.equal(iso("Published Sep 26, 2026 at 10:30 AM"), "2026-09-26T02:30:00.000Z");
++  assert.equal(iso("Sep 26, 2026 at 10:30"), "2026-09-26T01:30:00.000Z");
++  assert.equal(iso("Published Sep 26, 2026 at 10:30 AM"), "2026-09-26T01:30:00.000Z");
+   assert.equal(iso("September 26, 2026 at 10:30 AM EST"), "2026-09-26T15:30:00.000Z");
+   assert.equal(iso("March 8, 2026 at 02:30", "+00:00"), "2026-03-08T02:30:00.000Z");
+-  assert.equal(iso("2026-09-26 at 10:30"), "2026-09-26T02:30:00.000Z");
+-  assert.equal(iso("09/26/2026 at 10:30"), "2026-09-26T02:30:00.000Z");
+-  assert.deepEqual(readPublicationDate("2026-09-26 at 10:30").publicationTime, "2026-09-26T02:30:00.000Z");
++  assert.equal(iso("2026-09-26 at 10:30"), "2026-09-26T01:30:00.000Z");
++  assert.equal(iso("09/26/2026 at 10:30"), "2026-09-26T01:30:00.000Z");
++  assert.deepEqual(readPublicationDate("2026-09-26 at 10:30").publicationTime, "2026-09-26T01:30:00.000Z");
+ });
+ 
+ test("an abbreviated month may end with a period", () => {
+-  assert.equal(iso("Sept. 26, 2026"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("Published Sept. 26, 2026"), "2026-09-25T16:00:00.000Z");
+-  assert.equal(iso("26 Sept. 2026"), "2026-09-25T16:00:00.000Z");
++  assert.equal(iso("Sept. 26, 2026"), "2026-09-25T15:00:00.000Z");
++  assert.equal(iso("Published Sept. 26, 2026"), "2026-09-25T15:00:00.000Z");
++  assert.equal(iso("26 Sept. 2026"), "2026-09-25T15:00:00.000Z");
+   assert.equal(iso("Sept. 26, 2026, 10:30 AM EDT"), "2026-09-26T14:30:00.000Z");
+   assert.equal(iso("Feb. 30, 2026"), null);
+ });
+@@ -64,8 +65,8 @@ test("English wall-clock dates are not shifted by the host's daylight-saving gap
+       assert.equal(iso("8 March 2026 02:30:45", "+08:00"), "2026-03-07T18:30:45.000Z", tz);
+       assert.equal(iso("March 29th, 2026 02:30", "+00:00"), "2026-03-29T02:30:00.000Z", tz);
+       assert.equal(iso("29 Mar 2026 02:30", "-07:00"), "2026-03-29T09:30:00.000Z", tz);
+-      assert.equal(iso("Sep 26, 2026 10:00 PM"), "2026-09-26T14:00:00.000Z", tz);
+-      assert.equal(iso("Sep 26, 2026"), "2026-09-25T16:00:00.000Z", tz);
++      assert.equal(iso("Sep 26, 2026 10:00 PM"), "2026-09-26T13:00:00.000Z", tz);
++      assert.equal(iso("Sep 26, 2026"), "2026-09-25T15:00:00.000Z", tz);
+       assert.equal(iso("Feb 30, 2026 02:30", "+00:00"), null, tz);
+       assert.equal(iso("Mar 8, 2026 25:30", "+00:00"), null, tz);
+     }
+@@ -96,8 +97,8 @@ test("English times with explicit zones retain their zone on every host", () =>
+ });
+ 
+ test("CST, which Chinese pages print for China time, is read in the source's offset", () => {
+-  assert.equal(iso("2026-09-26 10:00:00 CST"), "2026-09-26T02:00:00.000Z");
+-  assert.equal(iso("Sep 26, 2026 10:00 PM CST"), "2026-09-26T14:00:00.000Z");
++  assert.equal(iso("2026-09-26 10:00:00 CST"), "2026-09-26T01:00:00.000Z");
++  assert.equal(iso("Sep 26, 2026 10:00 PM CST"), "2026-09-26T13:00:00.000Z");
+   assert.equal(iso("2026-09-26 10:00 CST", "-06:00"), "2026-09-26T16:00:00.000Z");
+ });
+ 
+@@ -110,7 +111,7 @@ test("an article page's publication time without a zone is the same moment acros
+   };
+   try {
+     for (const tz of ["UTC", "Asia/Shanghai"]) {
+-      assert.equal(read(tz, "2026-09-26T10:00:00"), "2026-09-26T02:00:00.000Z", tz);
++      assert.equal(read(tz, "2026-09-26T10:00:00"), "2026-09-26T01:00:00.000Z", tz);
+       assert.equal(read(tz, "2026-09-26T10:00:00", "+00:00"), "2026-09-26T10:00:00.000Z", tz);
+       assert.equal(read(tz, "2026-09-26T10:00:00+09:00", "+00:00"), "2026-09-26T01:00:00.000Z", tz);
+     }
+@@ -148,7 +149,7 @@ test('all date-only formats retain the source calendar day and use its offset',
+ test('real midnight keeps its precision; date-only and missing source precision never invent it', () => {
+   assert.deepEqual(readPublicationDate('2026-10-13T00:00:00-07:00'), { publishedAt: new Date('2026-10-13T07:00:00Z'), publicationTime: '2026-10-13T07:00:00.000Z' });
+   assert.equal(describePublicationTime(new Date('2026-10-13T07:00:00Z'), '2026-10-13'), '2026-10-13（原文仅有日期，时刻未知）');
+-  assert.equal(describePublicationTime(new Date('2026-10-13T07:00:00Z'), null), '2026-10-13 15:00（历史记录，原始精度未知）');
++  assert.equal(describePublicationTime(new Date('2026-10-13T07:00:00Z'), null), '2026-10-13 16:00（历史记录，原始精度未知）');
+   assert.equal(describePublicationTime(null, null), '未知');
+ });
+ 
+@@ -156,7 +157,7 @@ test('grouping distinguishes a publication day from an exact instant', () => {
+   const report = { title: 'Release', source: 'Official', firstParty: true, at: new Date('2026-10-13T07:00:00Z'), publicationTime: '2026-10-13', summary: null };
+   const text = describeReport(report, '报道');
+   assert.match(text, /发布时间：2026-10-13（原文仅有日期，时刻未知）/);
+-  assert.doesNotMatch(text, /15:00/);
++  assert.doesNotMatch(text, /16:00/);
+ });
+ 
+ test("legacy JSON and RSS formats keep their source date and zone", () => {
+diff --git a/tests/sources.standalone.test.ts b/tests/sources.standalone.test.ts
+index 22dbf39..c077128 100644
+--- a/tests/sources.standalone.test.ts
++++ b/tests/sources.standalone.test.ts
+@@ -230,10 +230,11 @@ test("noise words match whatever their case", () => {
+ test("a time without a zone is read in the source's offset, in JSON lists and in detail page metadata", async () => {
+   const list = async (extra: Record<string, unknown> = {}) => (await fetchJsonList({ id: "test-json", config: { url: `${site}/zoneless.json`, itemsPath: "result", titlePaths: ["title"], urlTemplate: "https://example.org/p/{id}", publishedAtPath: "publishDate", ...extra } } as never))
+     .map((c) => c.publishedAt?.toISOString());
+-  assert.deepEqual(await list(), ["2026-09-30T09:43:58.000Z", "2026-09-30T17:43:58.000Z", "2026-09-30T22:43:58.000Z"], "+08:00 by default, as list pages; a time with its zone keeps it");
++  // HotBrief ko: the default source offset is Asia/Seoul (+09:00), not +08:00.
++  assert.deepEqual(await list(), ["2026-09-30T08:43:58.000Z", "2026-09-30T17:43:58.000Z", "2026-09-30T22:43:58.000Z"], "+09:00 by default, as list pages; a time with its zone keeps it");
+   assert.deepEqual(await list({ publishedAtUtcOffset: "+00:00" }), ["2026-09-30T17:43:58.000Z", "2026-09-30T17:43:58.000Z", "2026-09-30T22:43:58.000Z"]);
+   const detail = async (offset?: string) => (await fetchDetail(`${site}/zoneless-post`, { id: "test-feed", config: { detail: { maxFetches: 20, publishedAtUtcOffset: offset } } } as never, { date: true, title: false, summary: false, body: false })).publishedAt?.toISOString();
+-  assert.deepEqual([await detail(), await detail("+00:00")], ["2026-09-30T09:43:58.000Z", "2026-09-30T17:43:58.000Z"]);
++  assert.deepEqual([await detail(), await detail("+00:00")], ["2026-09-30T08:43:58.000Z", "2026-09-30T17:43:58.000Z"]);
+ });
+ 
+ test("posts embedded in a flight payload keep their own arrays and brackets inside strings", async () => {
+@@ -243,9 +244,10 @@ test("posts embedded in a flight payload keep their own arrays and brackets insi
+ 
+ test("dates in yyyymmdd and in JSON-LD are read", async () => {
+   const days = await fetchJsonList({ id: "test-json", config: { url: `${site}/days.json`, itemsPath: "data.list", titlePaths: ["ttl"], urlTemplate: "https://example.org/blog/view?seq={seq}", publishedAtPath: "day", publishedAtUnit: "yyyymmdd" } } as never);
+-  assert.deepEqual(days.map((c) => c.publishedAt?.toISOString() ?? null), ["2026-09-21T16:00:00.000Z", null], "calendar days use the source offset; February 30 is no date");
++  // HotBrief ko: calendar days are midnight in Asia/Seoul (+09:00), the default source offset.
++  assert.deepEqual(days.map((c) => c.publishedAt?.toISOString() ?? null), ["2026-09-21T15:00:00.000Z", null], "calendar days use the source offset; February 30 is no date");
+   const got = await fetchDetail(`${site}/ld-post`, { id: "test-feed", config: { detail: { maxFetches: 20 } } } as never, { date: true, title: false, summary: false, body: false });
+-  assert.equal(got.publishedAt?.toISOString(), "2026-09-23T16:00:00.000Z");
++  assert.equal(got.publishedAt?.toISOString(), "2026-09-23T15:00:00.000Z");
+   assert.equal(got.publicationTime, "2026-09-24");
+ });
+ 
+diff --git a/tests/text.standalone.test.ts b/tests/text.standalone.test.ts
+index ef23d89..e134f73 100644
+--- a/tests/text.standalone.test.ts
++++ b/tests/text.standalone.test.ts
+@@ -51,15 +51,24 @@ test("stripTags decodes character references, also when a feed escaped them twic
+ });
+ 
+ test("writing and public reading agree about Chinese, including Japanese with kanji", () => {
+-  for (const body_text of ["新しい人工知能モデルを公開しました。", "人工知能 모델을 공개했습니다."]) {
++  // HotBrief ko: the reader's language is Korean, so these checks ask "is it Korean?": Japanese with kanji and
++  // Chinese are translated, Korean (with or without hanja) is not; a declared language still wins.
++  for (const body_text of ["新しい人工知能モデルを公開しました。", "新的人工智能模型发布了。"]) {
+     assert.equal(looksZh(body_text), false);
+-    for (const language of [null, "ja", "ko"]) {
++    for (const language of [null, "ja", "zh"]) {
+       assert.equal(isChineseBody({ language, body_text }), false);
+-      assert.equal(exportTranslation({ language, body_text, tr_html: "<p>发布了新模型。</p>", tr_complete: true }), "<p>发布了新模型。</p>");
++      assert.equal(exportTranslation({ language, body_text, tr_html: "<p>새 모델을 공개했다.</p>", tr_complete: true }), "<p>새 모델을 공개했다.</p>");
++    }
++  }
++  for (const body_text of ["人工知能 모델을 공개했습니다.", "새 인공지능 모델을 공개했습니다."]) {
++    assert.equal(looksZh(body_text), true);
++    for (const language of [null, "ko"]) {
++      assert.equal(isChineseBody({ language, body_text }), true);
++      assert.equal(exportTranslation({ language, body_text, tr_html: "<p>새 모델을 공개했다.</p>", tr_complete: true }), null);
+     }
+   }
+   assert.equal(isChineseBody({ language: "ja", body_text: "人工知能研究開発" }), false);
+-  assert.equal(isChineseBody({ language: null, body_text: "新的人工智能模型发布了。" }), true);
+-  assert.equal(isChineseBody({ language: "zh-Hans", body_text: "API" }), true);
+-  assert.equal(isChineseBody({ language: "en", body_text: "An English article quoting 人工智能." }), false);
++  assert.equal(isChineseBody({ language: null, body_text: "새 인공지능 모델이 공개됐다." }), true);
++  assert.equal(isChineseBody({ language: "ko-KR", body_text: "API" }), true);
++  assert.equal(isChineseBody({ language: "en", body_text: "An English article quoting 인공지능." }), false);
+ });
+diff --git a/tests/timeline-day-counts.test.ts b/tests/timeline-day-counts.test.ts
+index 77a4760..0ee1e97 100644
+--- a/tests/timeline-day-counts.test.ts
++++ b/tests/timeline-day-counts.test.ts
+@@ -19,7 +19,8 @@ const descending = (anchors: number[]) => anchors.sort((a, b) => b - a).map(anch
+ test("day counts retain exact Beijing midnight, leap-day and year boundaries", () => {
+   assert.deepEqual(countTimelineDays([], new Set()), {});
+   // UTC inputs and calendar answers are independent of the production timezone helpers.
+-  const anchors = ["2023-12-30T16:00:00Z", "2023-12-31T16:00:00Z", "2024-02-28T16:00:00Z", "2024-02-29T16:00:00Z"].flatMap(time => {
++  // HotBrief ko: the site clock's midnights, Asia/Seoul (UTC+9), are 15:00 UTC.
++  const anchors = ["2023-12-30T15:00:00Z", "2023-12-31T15:00:00Z", "2024-02-28T15:00:00Z", "2024-02-29T15:00:00Z"].flatMap(time => {
+     const midnight = Date.parse(time);
+     return [midnight - 1, midnight, midnight, midnight + 1];
+   });
+diff --git a/tests/topic-membership.test.ts b/tests/topic-membership.test.ts
+index fbbc9b5..7bd2e2d 100644
+--- a/tests/topic-membership.test.ts
++++ b/tests/topic-membership.test.ts
+@@ -14,17 +14,18 @@ test("topic lists and pool counts share the exact membership predicate", async (
+   const prefix = `membership-${tag()}`;
+   const at = new Date("2026-01-01T00:00:00Z");
+   const now = new Date(+at + 1000);
++  // HotBrief ko: the agent topic's tag is the edition's 「에이전트」 (l10n/ko/industry/topics.json).
+   const cases = [
+-    { title: "", original: null, tags: ["Agent"], topics: ["agent"] },
+-    { title: "Anthropic Agent", original: null, tags: [], topics: [] },
++    { title: "", original: null, tags: ["에이전트"], topics: ["agent"] },
++    { title: "Anthropic 에이전트", original: null, tags: [], topics: [] },
+     { title: "", original: null, tags: ["entity:anthropic"], topics: ["anthropic"] },
+     { title: "Unrelated", original: null, tags: ["entity:anthropic", "entity:openai"], topics: [] },
+     { title: "Unrelated", original: "ANTHROPIC launches a model", tags: ["entity:anthropic", "entity:openai"], topics: ["anthropic"] },
+     { title: "Metadata", original: null, tags: ["entity:meta", "entity:openai"], topics: [] },
+     { title: "发布Meta的新模型", original: null, tags: ["entity:meta", "entity:openai"], topics: ["meta"] },
+-    { title: "Unselected", original: null, tags: ["Agent", "entity:anthropic"], topics: ["agent", "anthropic"], selected: false },
+-    { title: "Withdrawn", original: null, tags: ["Agent", "entity:anthropic"], topics: ["agent", "anthropic"], visibility: "withdrawn" },
+-    { title: "Future", original: null, tags: ["Agent", "entity:anthropic"], topics: ["agent", "anthropic"], future: true },
++    { title: "Unselected", original: null, tags: ["에이전트", "entity:anthropic"], topics: ["agent", "anthropic"], selected: false },
++    { title: "Withdrawn", original: null, tags: ["에이전트", "entity:anthropic"], topics: ["agent", "anthropic"], visibility: "withdrawn" },
++    { title: "Future", original: null, tags: ["에이전트", "entity:anthropic"], topics: ["agent", "anthropic"], future: true },
+   ];
+   await sql`INSERT INTO sources (id, name, kind, tier) VALUES (${prefix}, ${prefix}, 'rss', 'T1')`;
+   for (const [i, row] of cases.entries()) {
+diff --git a/tests/topics.test.ts b/tests/topics.test.ts
+index c7519c7..fab05ac 100644
+--- a/tests/topics.test.ts
++++ b/tests/topics.test.ts
+@@ -50,6 +50,7 @@ interface Report {
+   category?: string;
+ }
+ 
++// HotBrief ko: genre and direction tags are the edition's (l10n/ko/industry/taxonomy.ts, topics.json).
+ /** A published report; `fact` links it to a fact before publishing, as grouping would. */
+ async function report(r: Report): Promise<string> {
+   n += 1;
+@@ -58,7 +59,7 @@ async function report(r: Report): Promise<string> {
+   });
+   await sql`UPDATE articles SET discovered_at = ${r.at}, timeline_at = ${r.at}, grouped_at = now() WHERE id = ${articleId}`;
+   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, score, selected, subjects, tags)
+-            VALUES (${articleId}, 1, 'rule', 'pass', ${r.category ?? "ai-models"}, ${r.title}, ${`摘要 ${n}`}, ${r.score ?? 80}, ${r.selected ?? true}, ${r.subjects ?? []}, ${[r.category === "ai-products" ? "产品更新" : r.category === "paper" ? "论文/研究" : r.category === "tip" ? "教程/实践" : r.category === "industry" ? "行业动态" : r.category === "opinion" ? "大佬观点" : "模型发布", ...(r.tags ?? [])]})`;
++            VALUES (${articleId}, 1, 'rule', 'pass', ${r.category ?? "ai-models"}, ${r.title}, ${`摘要 ${n}`}, ${r.score ?? 80}, ${r.selected ?? true}, ${r.subjects ?? []}, ${[r.category === "ai-products" ? "제품 업데이트" : r.category === "paper" ? "논문/연구" : r.category === "tip" ? "튜토리얼/실전" : r.category === "industry" ? "업계 동향" : r.category === "opinion" ? "주요 인물 의견" : "모델 출시", ...(r.tags ?? [])]})`;
+   if (r.fact) await sql`INSERT INTO fact_articles (fact_id, article_id, role) VALUES (${r.fact}, ${articleId}, 'report')`;
+   await publishArticle(articleId, { releasedAt: new Date(r.at.getTime() + 60_000) });
+   return articleId;
+@@ -100,7 +101,7 @@ test("a company topic takes the articles about it, not the ones that only mentio
+   const metadata = await report({ at: hoursAgo(36), title: `Metadata 标准发布，OpenAI 参与 ${T}`, subjects: ["meta", "openai"] });
+   const adjacent = await report({ at: hoursAgo(37), title: `发布Meta的新模型 ${T}`, subjects: ["meta", "openai"] });
+   const headline = await report({ at: hoursAgo(38), title: `Anthropic 被一篇盘点提到 ${T}`, subjects: ["google"] });
+-  const agent = await report({ at: hoursAgo(39), title: `智能体框架发布 ${T}`, tags: ["Agent"] });
++  const agent = await report({ at: hoursAgo(39), title: `智能体框架发布 ${T}`, tags: ["에이전트"] });
+ 
+   const anthropic = await members("anthropic");
+   for (const id of [about, product, english]) assert.ok(anthropic.includes(id), "about Anthropic");
+@@ -126,8 +127,8 @@ test("a company topic takes the articles about it, not the ones that only mentio
+ 
+ test("a story page names the topics of its reports", async () => {
+   const launch = await story(`智能体框架 V2 发布 ${T}`);
+-  await report({ source: OFFICIAL, at: hoursAgo(26), title: `智能体框架 V2 发布 ${T}`, tags: ["Agent"], fact: await fact(launch.id, "发布 V2") });
+-  assert.deepEqual(await topicsOfStory(launch.id), [{ slug: "agent", name: "Agent 智能体" }, { slug: "model-releases", name: "模型发布" }]);
++  await report({ source: OFFICIAL, at: hoursAgo(26), title: `智能体框架 V2 发布 ${T}`, tags: ["에이전트"], fact: await fact(launch.id, "发布 V2") });
++  assert.deepEqual(await topicsOfStory(launch.id), [{ slug: "agent", name: "AI 에이전트" }, { slug: "model-releases", name: "모델 출시" }]);
+ });
+ 
+ test("withdrawn articles stay out of lists and counts", async () => {
+diff --git a/tests/translate.test.ts b/tests/translate.test.ts
+index 714ab80..b426623 100644
+--- a/tests/translate.test.ts
++++ b/tests/translate.test.ts
+@@ -79,8 +79,9 @@ after(async () => {
+ test("Japanese bodies with kanji are translated with or without a language hint", async () => {
+   // A newer Chinese original used to be skipped. Reconsidering old language skips must neither
+   // send it to a paid provider nor let it take the single batch slot from Japanese behind it.
+-  const { articleId: chinese } = await upsertMaterial({ sourceId: SOURCE, url: `${URL_}-chinese`, title: '新的模型已发布',
+-    bodyText: '这是已经用中文写好的完整正文。', bodyHtml: '<p>这是已经用中文写好的完整正文。</p>',
++  // HotBrief ko: the original already in the reader's language is Korean; a Chinese one is foreign here and is translated.
++  const { articleId: chinese } = await upsertMaterial({ sourceId: SOURCE, url: `${URL_}-chinese`, title: '새 모델 공개',
++    bodyText: '이미 한국어로 다 쓴 본문입니다.', bodyHtml: '<p>이미 한국어로 다 쓴 본문입니다.</p>',
+     bodyStatus: 'ok', via: 'fetch', publishedAt: new Date(), discoveredAt: new Date(Date.now() + 600_000) });
+   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
+     VALUES (${chinese},1,'rule','pass','ai-models','新的模型已发布','摘要','理由',90,true)`;
