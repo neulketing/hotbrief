@@ -3,6 +3,8 @@
 // The domain is not here: set it with the SITE_URL environment variable when you deploy.
 // HotBrief US English edition (l10n/en-US). Original: site/site.ts (AIHOT, MIT).
 
+import type { Founder } from "@aihot/contracts/site-config";
+
 /**
  * When the daily, weekly and monthly briefings come out (HH:mm). The daily covers the 24 hours before this time, the weekly comes
  * out on the Monday after each week, the monthly on the 1st. With l10n/patches/en-US.patch applied the site clock is UTC, so
@@ -69,13 +71,15 @@ export const SITE = {
   footerNote: "HotBrief US edition · Based on AIHOT by 数字生命卡兹克 (Khazix)",
   /** ICP filing number for sites in mainland China. Leave null for US sites. */
   icp: null as string | null,
+  /** Public-security filing for sites in mainland China. Leave null for US sites. */
+  psb: null as string | null,
   /** The source code's GitHub address (optional); shows "Open source on GitHub" in the sidebar and on the "Me" page. */
   github: "https://github.com/neulketing/hotbrief" as string | null,
   /** The site operator in structured data (for search engines). */
   organization: {
     name: "HotBrief",
     /** Founder (optional). */
-    founder: null as null | { name: string; alternateName?: string; jobTitle?: string; description?: string; url?: string },
+    founder: null as Founder | null,
   },
   /** Name and version announced when fetching sources (User-Agent). Don't use another site's name. */
   crawlerName: "HotBriefBot/1.0",

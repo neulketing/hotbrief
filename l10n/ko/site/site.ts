@@ -3,6 +3,8 @@
 // 도메인은 여기 없다. 배포할 때 환경변수 SITE_URL 로 정한다.
 // HotBrief 한국어판(l10n/ko). 원본: site/site.ts (AIHOT, MIT).
 
+import type { Founder } from "@aihot/contracts/site-config";
+
 /**
  * 일간·주간·월간 브리핑이 나가는 시각(HH:mm). 일간은 이 시각 직전 24시간을 모으고, 주간은 매주 월요일, 월간은 매월 1일에 나간다.
  * 시계는 l10n/patches/ko.patch 를 적용하면 한국 시간(Asia/Seoul, UTC+9)이고, 적용하지 않으면 원본대로 베이징 시간(UTC+8)이다.
@@ -68,13 +70,15 @@ export const SITE = {
   footerNote: "HotBrief 한국어판 · Based on AIHOT by 数字生命卡兹克 (Khazix)",
   /** 중국 본토 사이트용 ICP 등록번호. 한국·미국 사이트는 null 로 둔다. */
   icp: null as string | null,
+  /** 중국 본토 사이트용 공안 등록 정보. 한국·미국 사이트는 null 로 둔다. */
+  psb: null as string | null,
   /** 소스 코드 GitHub 주소(선택). 넣으면 사이드바와 "내 정보" 맨 아래에 "GitHub 오픈소스"가 나온다. */
   github: "https://github.com/neulketing/hotbrief" as string | null,
   /** 구조화 데이터의 사이트 운영자(검색엔진용). */
   organization: {
     name: "HotBrief",
     /** 창립자(선택). */
-    founder: null as null | { name: string; alternateName?: string; jobTitle?: string; description?: string; url?: string },
+    founder: null as Founder | null,
   },
   /** 출처를 가져올 때 밝히는 이름과 버전(User-Agent). 다른 사이트 이름을 쓰지 않는다. */
   crawlerName: "HotBriefBot/1.0",
