@@ -56,7 +56,7 @@ TRUST_PROXY=true           # 방문자 주소는 Caddy가 넘겨 준 요청 헤�
 docker compose --profile https up -d --build
 ```
 
-이미 Nginx가 있다면 Caddy 대신 사이트를 `http://127.0.0.1:3000` 으로 리버스 프록시하고, `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` 를 넣고, `.env` 에 `TRUST_PROXY=true` 를 설정합니다. `SITE_URL` 은 반드시 독자가 실제로 접속하는 주소로 씁니다. 만들어지는 링크, RSS, 공유 이미지, MCP가 모두 이 값을 씁니다.
+이미 Nginx가 있다면 Caddy 대신 사이트를 `http://127.0.0.1:3000` 으로 리버스 프록시하고, `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` 와 `proxy_set_header X-Forwarded-Proto $scheme;` 를 넣고(관리자 로그인은 이 헤더로 HTTPS 접속인지 판단합니다. 빠지면 로그인 쿠키에 Secure 가 붙지 않습니다), `.env` 에 `TRUST_PROXY=true` 를 설정합니다. `SITE_URL` 은 반드시 독자가 실제로 접속하는 주소로 씁니다. 만들어지는 링크, RSS, 공유 이미지, MCP가 모두 이 값을 씁니다.
 
 MCP는 기본적으로 `SITE_URL` 의 호스트와 `localhost`, `127.0.0.1`, `[::1]` 을 받습니다. 그 밖의 호스트는 `MCP_ALLOWED_HOSTS` 에 쉼표로 구분해 설정합니다. 예: `extra.example:8443,[2001:db8::1]`. 호스트 이름은 대소문자를 가리지 않고, IPv6는 반드시 대괄호로 감쌉니다. 0–65535 범위의 10진수 포트를 붙일 수 있으며, 비교할 때 포트는 무시합니다. 경로, 사용자 정보, 잘못된 포트가 들어간 설정은 적용되지 않습니다. `127.1` 같은 별칭은 명시적으로 넣어야 합니다. 이 설정은 Host 검사에만 영향을 주고, 브라우저 Origin 허용 범위를 넓히지 않습니다.
 
