@@ -403,12 +403,12 @@ index 0ea8b50..fbc7168 100644
    assert.doesNotMatch(JSON.stringify(card), /来源：/);
  });
 diff --git a/tests/source-dates.standalone.test.ts b/tests/source-dates.standalone.test.ts
-index 0411142..b0cf47e 100644
+index b810ea5..28c25e7 100644
 --- a/tests/source-dates.standalone.test.ts
 +++ b/tests/source-dates.standalone.test.ts
 @@ -7,21 +7,22 @@ import { describeReport } from "@aihot/backend/events/relate";
  import { readable } from "@aihot/backend/content/extract";
- import { parseLooseDate, readPublicationDate, describePublicationTime } from "@aihot/backend/sources/dates";
+ import { parseLooseDate, readPublicationDate, readRelativeDate, describePublicationTime } from "@aihot/backend/sources/dates";
  
 +// HotBrief ko: a source without its own offset is read in the site clock, Asia/Seoul (+09:00), not +08:00.
  const iso = (v: string, offset?: string) => parseLooseDate(v, offset)?.toISOString() ?? null;
