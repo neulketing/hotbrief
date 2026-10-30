@@ -1,8 +1,8 @@
 diff --git a/apps/api/src/routes/admin-auth.ts b/apps/api/src/routes/admin-auth.ts
-index a1d38f6..94f41ad 100644
+index a9446bf..96224ec 100644
 --- a/apps/api/src/routes/admin-auth.ts
 +++ b/apps/api/src/routes/admin-auth.ts
-@@ -60,7 +60,7 @@ export function adminHandler(fn: AdminHandler) {
+@@ -65,7 +65,7 @@ export function adminHandler(fn: AdminHandler) {
        return await fn(req, reply, admin);
      } catch (error) {
        if (error instanceof ZodError) {
@@ -11,8 +11,8 @@ index a1d38f6..94f41ad 100644
        }
        if ((error as { statusCode?: number }).statusCode === 400 || error instanceof SyntaxError) {
          return sendProblem(req, reply, { status: 400, code: "invalid_request", detail: String((error as Error).message).slice(0, 300) });
-@@ -140,9 +140,9 @@ export function registerAdminAuth(app: FastifyInstance) {
-       reply.header("Set-Cookie", [cookie(SESSION_COOKIE, token, SESSION_DAYS * 86400, secure()), cookie(STATE_COOKIE, "", 0, secure())]);
+@@ -145,9 +145,9 @@ export function registerAdminAuth(app: FastifyInstance) {
+       reply.header("Set-Cookie", [cookie(SESSION_COOKIE, token, SESSION_DAYS * 86400, secure(req)), cookie(STATE_COOKIE, "", 0, secure(req))]);
        return reply.redirect(returnTo, 302);
      } catch (error) {
 -      const message = error instanceof LoginRejected ? error.message : "登录失败，请稍后再试";
@@ -1975,7 +1975,7 @@ index 9c70413..7957c26 100644
        )}
      </nav>
 diff --git a/apps/web/app/features/report/ReportPaper.tsx b/apps/web/app/features/report/ReportPaper.tsx
-index cabdd8b..1248d3d 100644
+index 06ff83d..46b948b 100644
 --- a/apps/web/app/features/report/ReportPaper.tsx
 +++ b/apps/web/app/features/report/ReportPaper.tsx
 @@ -9,7 +9,7 @@ import { IntentLink } from "../../components/ui/IntentLink";
@@ -2210,19 +2210,19 @@ index cabdd8b..1248d3d 100644
          </p>
        </footer>
 diff --git a/apps/web/app/features/report/format.ts b/apps/web/app/features/report/format.ts
-index 38feeac..1bfbc37 100644
+index 4ab9cc3..d2a9de9 100644
 --- a/apps/web/app/features/report/format.ts
 +++ b/apps/web/app/features/report/format.ts
 @@ -1,9 +1,9 @@
  // Names, dates and grouping for daily, weekly and monthly reports.
  import { REPORT_NAMES, type ReportNavigationEntry, type ReportKind } from "@aihot/contracts/site";
--import { beijingDate, beijingWeekday, isoWeekLabel, isoWeekRange, monthDay } from "@aihot/contracts/time";
+-import { beijingDate, beijingWeekday, isoWeekLabel, isoWeekRange, monthDay as engineMonthDay } from "@aihot/contracts/time";
 -import { EDITION_WHEN, REPORTS, SITE, subjectAfter } from "@aihot/site";
-+import { beijingDate, isoWeekLabel, isoWeekRange, monthDay } from "@aihot/contracts/time";
++import { beijingDate, isoWeekLabel, isoWeekRange, monthDay as engineMonthDay } from "@aihot/contracts/time";
 +import { EDITION_WHEN, REPORTS, SITE } from "@aihot/site";
  import { RELEASE } from "@aihot/industry/taxonomy";
--import { weekdayShort } from "../../lib/format.ts";
-+import { monthName, weekdayLong, weekdayShort } from "../../lib/format.ts";
+-import { monthDay, weekdayShort } from "../../lib/format.ts";
++import { monthDay, monthName, weekdayLong, weekdayShort } from "../../lib/format.ts";
  
  export const KINDS: ReportKind[] = ["daily", "weekly", "monthly"];
  export const KIND_PATH: Record<ReportKind, string> = { daily: "/daily", weekly: "/weekly", monthly: "/monthly" };
@@ -2287,9 +2287,9 @@ index 38feeac..1bfbc37 100644
 -/** Short chip label for the phone switcher: "今天", "9月26日", "9月第2周", "8 月". */
 +/** Short chip label for the phone switcher: "Today", "Sep 26", "Sep, week 2", "Aug". */
  export function chipLabel(kind: ReportKind, key: string, index: ReportNavigationEntry[], today: string): string {
--  if (kind === "daily") return key === today ? "今天" : monthDay(key);
+-  if (kind === "daily") return key === today ? "今天" : engineMonthDay(key, today);
 -  if (kind === "monthly") return `${Number(key.slice(5, 7))} 月`;
-+  if (kind === "daily") return key === today ? "Today" : monthDay(key);
++  if (kind === "daily") return key === today ? "Today" : engineMonthDay(key, today);
 +  if (kind === "monthly") return monthName(Number(key.slice(5, 7))).slice(0, 3);
    const group = archiveGroups("weekly", index).find((g) => g.entries.some((e) => e.key === key));
    const entry = group?.entries.find((e) => e.key === key);
@@ -2333,13 +2333,13 @@ index 38feeac..1bfbc37 100644
    return METRICS.filter(([k]) => typeof metrics[k] === "number" && (k !== "modelsReleased" || metrics[k]! > 0)).map(([k, unit]) => ({ value: metrics[k]!, unit }));
  }
  
--/** "前一日 · 9月25日", "上一期 · 第 37 周", "下一期 · 7 月". */
+-/** "前一日 · 9月25日", "上一期 · 第 37 周", "下一期 · 7 月". A day of another year than `now` (Beijing) carries its year. */
 +/** "Previous day · Sep 25", "Previous issue · Week 37", "Next issue · July". */
- export function neighbourLabel(kind: ReportKind, key: string, direction: "prev" | "next"): string {
--  if (kind === "daily") return `${direction === "prev" ? "前一日" : "后一日"} · ${monthDay(key)}`;
+ export function neighbourLabel(kind: ReportKind, key: string, direction: "prev" | "next", now: number = Date.now()): string {
+-  if (kind === "daily") return `${direction === "prev" ? "前一日" : "后一日"} · ${monthDay(key, now)}`;
 -  const which = direction === "prev" ? "上一期" : "下一期";
 -  return kind === "weekly" ? `${which} · 第 ${Number(key.slice(6))} 周` : `${which} · ${Number(key.slice(5, 7))} 月`;
-+  if (kind === "daily") return `${direction === "prev" ? "Previous day" : "Next day"} · ${monthDay(key)}`;
++  if (kind === "daily") return `${direction === "prev" ? "Previous day" : "Next day"} · ${monthDay(key, now)}`;
 +  const which = direction === "prev" ? "Previous issue" : "Next issue";
 +  return kind === "weekly" ? `${which} · Week ${Number(key.slice(6))}` : `${which} · ${monthName(Number(key.slice(5, 7)))}`;
  }
@@ -7916,7 +7916,7 @@ index 34a8f9d..8ed49a2 100644
  
  export function truncate(s: string, max: number, ellipsis = "…"): string {
 diff --git a/packages/backend/src/operations/alerts.ts b/packages/backend/src/operations/alerts.ts
-index dd0f9dd..9c2b30b 100644
+index 89b4027..5513d7f 100644
 --- a/packages/backend/src/operations/alerts.ts
 +++ b/packages/backend/src/operations/alerts.ts
 @@ -257,6 +257,7 @@ const PROVIDERS: Record<string, { name: string; where: string; stops?: string }>

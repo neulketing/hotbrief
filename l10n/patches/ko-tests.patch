@@ -1,3 +1,49 @@
+diff --git a/apps/web/tests/report-year.test.ts b/apps/web/tests/report-year.test.ts
+index 853c694..3bbae0f 100644
+--- a/apps/web/tests/report-year.test.ts
++++ b/apps/web/tests/report-year.test.ts
+@@ -1,7 +1,7 @@
+ // Cross-year ambiguity of the report pages' printed calendar days (features/report/format.ts).
+ // Failure cases, the same class as day-header-year.test.ts: on 2 January 2027 the phone switcher's
+-// chip for the 31 December issue reads "12月31日" and the "前一日" link on the 1 January issue reads
+-// "前一日 · 12月31日" — both read as 2027's. The follow-up badge in ReportPaper.tsx and the calendar
++// chip for the 31 December issue reads "12월 31일" and the "전날" link on the 1 January issue reads
++// "전날 · 12월 31일" — both read as 2027's. The follow-up badge in ReportPaper.tsx and the calendar
+ // grid's hover labels print the same bare 月日 and now go through the same year-carrying monthDay.
+ import assert from "node:assert/strict";
+ import { test } from "node:test";
+@@ -12,19 +12,19 @@ const index = [
+   { key: "2027-01-01", issueNumber: 401, title: "第401期" },
+ ];
+ 
+-test("the phone chip names the year of another Beijing year", () => {
+-  assert.equal(chipLabel("daily", "2027-01-02", index, "2027-01-02"), "今天");
+-  assert.equal(chipLabel("daily", "2027-01-01", index, "2027-01-02"), "1月1日");
+-  assert.equal(chipLabel("daily", "2026-12-31", index, "2027-01-02"), "2026年12月31日");
++test("the phone chip names the year of another Seoul year", () => {
++  assert.equal(chipLabel("daily", "2027-01-02", index, "2027-01-02"), "오늘");
++  assert.equal(chipLabel("daily", "2027-01-01", index, "2027-01-02"), "1월 1일");
++  assert.equal(chipLabel("daily", "2026-12-31", index, "2027-01-02"), "2026년 12월 31일");
+ });
+ 
+ test("the prev/next-day links name the year across the year boundary", () => {
+-  // 31 December 2026, 23:30 Beijing time: the year has not turned for the clock.
+-  const endOfYear = Date.parse("2026-12-31T23:30:00+08:00");
+-  assert.equal(neighbourLabel("daily", "2026-12-30", "prev", endOfYear), "前一日 · 12月30日");
+-  assert.equal(neighbourLabel("daily", "2027-01-01", "prev", endOfYear), "前一日 · 2027年1月1日");
+-  // On 1 January 2027 the previous issue was another Beijing year's.
+-  const newYear = Date.parse("2027-01-01T08:00:00+08:00");
+-  assert.equal(neighbourLabel("daily", "2026-12-31", "prev", newYear), "前一日 · 2026年12月31日");
+-  assert.equal(neighbourLabel("daily", "2027-01-02", "next", newYear), "后一日 · 1月2日");
++  // 31 December 2026, 23:30 Seoul time: the year has not turned for the clock.
++  const endOfYear = Date.parse("2026-12-31T23:30:00+09:00");
++  assert.equal(neighbourLabel("daily", "2026-12-30", "prev", endOfYear), "전날 · 12월 30일");
++  assert.equal(neighbourLabel("daily", "2027-01-01", "prev", endOfYear), "전날 · 2027년 1월 1일");
++  // On 1 January 2027 the previous issue was another Seoul year's.
++  const newYear = Date.parse("2027-01-01T08:00:00+09:00");
++  assert.equal(neighbourLabel("daily", "2026-12-31", "prev", newYear), "전날 · 2026년 12월 31일");
++  assert.equal(neighbourLabel("daily", "2027-01-02", "next", newYear), "다음 날 · 1월 2일");
+ });
 diff --git a/tests/agent-public.test.ts b/tests/agent-public.test.ts
 index a212439..b2bb2bf 100644
 --- a/tests/agent-public.test.ts
