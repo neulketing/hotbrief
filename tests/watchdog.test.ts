@@ -16,6 +16,7 @@ const hooked: string[] = [];
 const hookedAt: number[] = [];
 const hookedBytes: number[] = [];
 let failing = false;
+let webhookDelay = 0;
 const provider = await stub(async (_hit, req) => {
   if (req.url.endsWith("/auth/v3/tenant_access_token/internal")) return { code: 0, tenant_access_token: "fictional-token", expire: 7200 };
   const body = JSON.parse(req.body);
@@ -35,6 +36,11 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
   const url = new URL(input instanceof Request ? input.url : String(input));
   assert.equal(url.origin, "https://open.feishu.cn");
+  if (webhookDelay && url.pathname.includes("/bot/v2/hook/")) {
+    const delay = webhookDelay;
+    webhookDelay = 0;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
   return realFetch(`${provider.url}${url.pathname}${url.search}`, init);
 }) as typeof fetch;
 
@@ -51,6 +57,7 @@ beforeEach(async () => {
   hookedAt.length = 0;
   hookedBytes.length = 0;
   failing = false;
+  webhookDelay = 0;
   process.env.FEISHU_APP_ID = "test-app";
   process.env.FEISHU_APP_SECRET = "test-secret";
   process.env.FEISHU_ALERT_CHAT_ID = `oc_test_${T}`;
@@ -113,6 +120,8 @@ test("the alert webhook keeps within the custom bot's limits: 20 KB a request, 1
   const lines = Array.from({ length: 900 }, (_, i) => `第 ${i} 个信源：连续抓取失败，读者看不到它的新内容`);
   lines.push("长".repeat(9000));
   lines.push(...Array.from({ length: 400 }, () => String.raw`详情：{"error":"\"bad\" \\path\\"}`));
+  // A slow first delivery must not let the next reserved slot arrive too soon.
+  webhookDelay = 250;
   await sendAlert("系统日报", lines);
   assert.ok(hooked.length >= 3);
   assert.ok(hookedBytes.every((n) => n <= 20 * 1024), `request sizes ${hookedBytes.join(", ")}`);
