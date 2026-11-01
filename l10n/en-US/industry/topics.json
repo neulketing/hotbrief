@@ -57,9 +57,10 @@
     },
     {
       "slug": "kimi",
-      "name": "Kimi / Moonshot AI",
+      "name": "Moonshot AI / Kimi",
       "group": "company",
       "entityId": "kimi",
+      "aliases": ["Kimi / Moonshot AI"],
       "definition": "Moonshot AI's Kimi product updates, the open K series models and progress on long-context work."
     },
     {

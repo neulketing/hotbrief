@@ -44,9 +44,10 @@ No original file is edited. The original author marks `site/` and `industry/` as
 | Path | Contents |
 |---|---|
 | `l10n/<lang>/site/site.ts` | Site name (HotBrief), home, about and briefing copy, publishing times, locale |
-| `l10n/<lang>/industry/prompts/*.md` | All 29 prompts, rewritten so the model writes Korean or English; rules, scores and thresholds unchanged |
+| `l10n/<lang>/industry/prompts/*.md` | All 31 prompts, rewritten so the model writes Korean or English; rules, scores and thresholds unchanged |
 | `l10n/<lang>/industry/taxonomy.ts` | Categories and tags in the target language; Korean companies (Naver, Kakao, LG AI Research, Upstage, Samsung) or US ones (Amazon, Apple, Mistral) added |
 | `l10n/<lang>/industry/topics.json` | Topic pages (43 in Korean, 41 in English) |
+| `l10n/<lang>/industry/selection.ts` | Selection thresholds unchanged; only the source-class names shown in the admin UI are translated |
 | `l10n/<lang>/industry/sources.json` | Korean AI news feeds / US AI news feeds, every URL fetched successfully on 2026-10-14 |
 | `l10n/<lang>/env.example` | Settings for Korea or the US (time zone, Gemini/OpenAI embeddings) |
 | `l10n/patches/<lang>.patch` | Translates the Chinese UI strings in `apps/` and `packages/`, moves the clock to Korea time or UTC, counts sentences in Korean/English summaries, and (ko) loads Korean fonts for share images |

@@ -44,9 +44,10 @@ git clone https://github.com/neulketing/hotbrief.git && cd hotbrief && l10n/appl
 | 위치 | 내용 |
 |---|---|
 | `l10n/ko/site/site.ts` | 사이트 이름(HotBrief), 홈·소개·브리핑 문구, 발행 시각, `ko-KR` |
-| `l10n/ko/industry/prompts/*.md` | 29개 프롬프트 전부. 출력이 한국어가 되게 다시 썼고 규칙·점수·문턱은 그대로입니다 |
+| `l10n/ko/industry/prompts/*.md` | 31개 프롬프트 전부. 출력이 한국어가 되게 다시 썼고 규칙·점수·문턱은 그대로입니다 |
 | `l10n/ko/industry/taxonomy.ts` | 분류·태그를 한국어로, 네이버·카카오·LG AI연구원·업스테이지·삼성을 회사 목록과 신원 사전에 추가 |
 | `l10n/ko/industry/topics.json` | 주제 페이지 43개(한국 회사 5개 추가) |
+| `l10n/ko/industry/selection.ts` | 엄선 문턱은 원본 그대로, 관리자 화면에 보이는 출처 분류 이름만 한국어로 |
 | `l10n/ko/industry/sources.json` | 한국 AI 뉴스 RSS와 해외 공식 출처 16곳. 2026-10-14에 실제로 열리는지 확인했습니다 |
 | `l10n/ko/env.example` | 한국에서 쓰는 설정 예시(`TZ=Asia/Seoul`, Gemini/OpenAI 임베딩) |
 | `l10n/patches/ko.patch` | 엔진 코드(`apps/`, `packages/`)에 남은 중국어 화면 문구 번역, 시계를 한국 시간으로, 한국어 문장 세기, 공유 이미지에 한글 글꼴 |
