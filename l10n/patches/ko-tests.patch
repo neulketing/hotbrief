@@ -1,49 +1,3 @@
-diff --git a/apps/web/tests/report-year.test.ts b/apps/web/tests/report-year.test.ts
-index 853c694..3bbae0f 100644
---- a/apps/web/tests/report-year.test.ts
-+++ b/apps/web/tests/report-year.test.ts
-@@ -1,7 +1,7 @@
- // Cross-year ambiguity of the report pages' printed calendar days (features/report/format.ts).
- // Failure cases, the same class as day-header-year.test.ts: on 2 January 2027 the phone switcher's
--// chip for the 31 December issue reads "12月31日" and the "前一日" link on the 1 January issue reads
--// "前一日 · 12月31日" — both read as 2027's. The follow-up badge in ReportPaper.tsx and the calendar
-+// chip for the 31 December issue reads "12월 31일" and the "전날" link on the 1 January issue reads
-+// "전날 · 12월 31일" — both read as 2027's. The follow-up badge in ReportPaper.tsx and the calendar
- // grid's hover labels print the same bare 月日 and now go through the same year-carrying monthDay.
- import assert from "node:assert/strict";
- import { test } from "node:test";
-@@ -12,19 +12,19 @@ const index = [
-   { key: "2027-01-01", issueNumber: 401, title: "第401期" },
- ];
- 
--test("the phone chip names the year of another Beijing year", () => {
--  assert.equal(chipLabel("daily", "2027-01-02", index, "2027-01-02"), "今天");
--  assert.equal(chipLabel("daily", "2027-01-01", index, "2027-01-02"), "1月1日");
--  assert.equal(chipLabel("daily", "2026-12-31", index, "2027-01-02"), "2026年12月31日");
-+test("the phone chip names the year of another Seoul year", () => {
-+  assert.equal(chipLabel("daily", "2027-01-02", index, "2027-01-02"), "오늘");
-+  assert.equal(chipLabel("daily", "2027-01-01", index, "2027-01-02"), "1월 1일");
-+  assert.equal(chipLabel("daily", "2026-12-31", index, "2027-01-02"), "2026년 12월 31일");
- });
- 
- test("the prev/next-day links name the year across the year boundary", () => {
--  // 31 December 2026, 23:30 Beijing time: the year has not turned for the clock.
--  const endOfYear = Date.parse("2026-12-31T23:30:00+08:00");
--  assert.equal(neighbourLabel("daily", "2026-12-30", "prev", endOfYear), "前一日 · 12月30日");
--  assert.equal(neighbourLabel("daily", "2027-01-01", "prev", endOfYear), "前一日 · 2027年1月1日");
--  // On 1 January 2027 the previous issue was another Beijing year's.
--  const newYear = Date.parse("2027-01-01T08:00:00+08:00");
--  assert.equal(neighbourLabel("daily", "2026-12-31", "prev", newYear), "前一日 · 2026年12月31日");
--  assert.equal(neighbourLabel("daily", "2027-01-02", "next", newYear), "后一日 · 1月2日");
-+  // 31 December 2026, 23:30 Seoul time: the year has not turned for the clock.
-+  const endOfYear = Date.parse("2026-12-31T23:30:00+09:00");
-+  assert.equal(neighbourLabel("daily", "2026-12-30", "prev", endOfYear), "전날 · 12월 30일");
-+  assert.equal(neighbourLabel("daily", "2027-01-01", "prev", endOfYear), "전날 · 2027년 1월 1일");
-+  // On 1 January 2027 the previous issue was another Seoul year's.
-+  const newYear = Date.parse("2027-01-01T08:00:00+09:00");
-+  assert.equal(neighbourLabel("daily", "2026-12-31", "prev", newYear), "전날 · 2026년 12월 31일");
-+  assert.equal(neighbourLabel("daily", "2027-01-02", "next", newYear), "다음 날 · 1월 2일");
- });
 diff --git a/tests/agent-public.test.ts b/tests/agent-public.test.ts
 index a212439..b2bb2bf 100644
 --- a/tests/agent-public.test.ts
@@ -59,18 +13,18 @@ index a212439..b2bb2bf 100644
 +  assert.ok(text.includes('FLASH-MARKER'));assert.ok(text.includes('신뢰할 수 없는 외부 자료'));
  });
 diff --git a/tests/analyze.test.ts b/tests/analyze.test.ts
-index 11c74aa..f77e6d5 100644
+index 08083e8..494c581 100644
 --- a/tests/analyze.test.ts
 +++ b/tests/analyze.test.ts
-@@ -14,6 +14,7 @@ import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
- import { compactAnswerFirstSummary, enforceIdentity, MAX_BODY_CHARS, parseTranslateOutput } from "@aihot/backend/editorial/writing";
+@@ -16,6 +16,7 @@ import { compactAnswerFirstSummary, enforceIdentity, MAX_BODY_CHARS, parseTransl
  import { READER_WORDING } from "@aihot/industry/wording";
+ import { SELECTION } from "@aihot/industry/selection";
  import { ITEM_TYPES } from "@aihot/industry/taxonomy";
 +import { ITEM_COPY } from "@aihot/site";
  
  const T = tag();
  const SOURCE = `test-analyze-${T}`;
-@@ -58,7 +59,7 @@ const provider = await stub((_hit, req) => {
+@@ -65,7 +66,7 @@ const provider = await stub((_hit, req) => {
      if (marker === "SENSITIVE") return new Reply(400, { contentFilter: [{ level: 1, role: "user" }], error: { code: "1301", message: "系统检测到输入或生成内容可能包含不安全或敏感内容" } });
      return answer({ itemType: "model_release", authorRole: "principal", tags: ["模型发布", "开源", "Agent", "不存在的标签"], editorialJudgment: `理由 ${marker}`, titleZh: `理解标题 ${marker}`, summaryZh: `理解摘要 ${marker}。第二句补充一个关键数字。` });
    }
@@ -79,7 +33,7 @@ index 11c74aa..f77e6d5 100644
    return answer(`title_zh: 翻译标题 ${marker}\nsummary_zh: 翻译摘要 ${marker}。第二句补充影响。`);
  });
  pointModels(provider.url);
-@@ -95,7 +96,7 @@ test("a selected item: prefilter, two scores, the content understanding and the
+@@ -103,7 +104,7 @@ test("a selected item: prefilter, two scores, the content understanding and the
    const r = await row(id);
    assert.deepEqual([r.title_zh, r.reason_zh, r.category, r.receipt_ids.length], ["理解标题 CLEAR", "理由 CLEAR", "ai-models", 5]);
    // Failure case: the writer's independent labels contradict the structural category.
@@ -88,7 +42,7 @@ index 11c74aa..f77e6d5 100644
    assert.deepEqual(r.subjects, ["anthropic"]);
    assert.deepEqual([r.output.writer, r.output.itemType, r.output.prefilter.label, r.output.fact.title], ["understand", "model_release", "PASS", "事实 CLEAR"]);
    assert.equal(r.output.scope, "single");
-@@ -114,7 +115,7 @@ test("a word the site keeps from readers goes back once to be changed; copy with
+@@ -122,7 +123,7 @@ test("a word the site keeps from readers goes back once to be changed; copy with
      const r = await row(id);
      assert.deepEqual([r.title_zh, r.reason_zh], ["标题里换了说法 WORDY", "理由里换了说法 WORDY"], "the mended copy is stored");
      const sent = requests.find((q) => q.marker === "WORDY" && q.step === "wording")!;
@@ -97,7 +51,7 @@ index 11c74aa..f77e6d5 100644
      assert.ok(!requests.some((q) => q.step === "wording" && q.marker !== "WORDY"), "the other items' copy uses none");
    } finally {
      (READER_WORDING as Array<readonly [RegExp, string]>).pop();
-@@ -179,7 +180,7 @@ test("a near-selected item is written like a selected one; below the floor it is
+@@ -187,7 +188,7 @@ test("a near-selected item is written like a selected one; below the floor it is
    const low = await analyzeArticle(lowId);
    assert.deepEqual([low!.output!.selected, low!.output!.titleZh, low!.output!.reasonZh], [false, "翻译标题 LOW", null]);
    assert.deepEqual(calls("LOW").sort(), ["prefilter", "score", "score", "structure", "summarize"]);
@@ -106,7 +60,7 @@ index 11c74aa..f77e6d5 100644
  });
  
  test("the prefilter's BLOCK stops everything; UNKNOWN with material goes on like PASS", async () => {
-@@ -216,7 +217,8 @@ test("a feed summary alone: the article page is fetched first, then the whole ar
+@@ -224,7 +225,8 @@ test("a feed summary alone: the article page is fetched first, then the whole ar
  
  test("a short post in Chinese is its own copy; a content-filter refusal is translated instead", async () => {
    // The tag rides as a hashtag, which the language check strips.
@@ -116,7 +70,7 @@ index 11c74aa..f77e6d5 100644
    const { articleId } = await upsertMaterial({
      sourceId: X_SOURCE, url: `https://x.com/test/status/1${Date.now()}`, title: text, via: "fetch", publishedAt: new Date(),
      xPost: { tweetId: `1${Date.now()}`, authorName: "测试", handle: "test", text },
-@@ -230,9 +232,10 @@ test("a short post in Chinese is its own copy; a content-filter refusal is trans
+@@ -238,9 +240,10 @@ test("a short post in Chinese is its own copy; a content-filter refusal is trans
  });
  
  test("guards: a company the input does not name is not written in; long summaries are cut at sentences", () => {
@@ -131,10 +85,10 @@ index 11c74aa..f77e6d5 100644
    const alibaba = { title: "Alibaba ships a new coding model", text: "Alibaba released a coding model with pricing details.", sourceKind: "rss" };
    assert.equal(enforceIdentity(alibaba, { titleZh: "阿里巴巴发布编程模型", summaryZh: "阿里巴巴发布了编程模型并公布价格。" }).identityGuard.outcome, "pass");
 diff --git a/tests/architecture.test.ts b/tests/architecture.test.ts
-index 5800a4e..c330c4a 100644
+index 7c195f0..4eeed91 100644
 --- a/tests/architecture.test.ts
 +++ b/tests/architecture.test.ts
-@@ -168,10 +168,11 @@ test("every environment variable the code reads is listed in a template, and eve
+@@ -167,10 +167,11 @@ test("every environment variable the code reads is listed in a template, and eve
  // copy kept milliseconds and one did not, one threw on a 13th month, one formatted through a locale.
  // Caught: offset arithmetic, a zone glued onto an interpolated date or time, Intl or SQL given the zone's
  // name. A fixed instant written with its zone, or a parser's default zone, converts nothing.
@@ -231,7 +185,7 @@ index de4a4fe..2b2e76b 100644
  
  test("an audited RSS presentation refresh uses the source body without substituting the web-page wording", async () => {
 diff --git a/tests/feedback-email-ban.test.ts b/tests/feedback-email-ban.test.ts
-index bcce94d..4245cc1 100644
+index d3d13fc..50d3f07 100644
 --- a/tests/feedback-email-ban.test.ts
 +++ b/tests/feedback-email-ban.test.ts
 @@ -47,7 +47,7 @@ test("email moderation does not block shared domains, anonymous security reports
@@ -243,11 +197,24 @@ index bcce94d..4245cc1 100644
    const forged = { ...base, ip: "203.0.113.237", email: "victim@example.com" };
    for (let i = 0; i < 20; i++) await submitFeedback(forged);
    await assert.rejects(submitFeedback(forged), e => e instanceof FeedbackRejected && e.status === 429);
+diff --git a/tests/feedback.test.ts b/tests/feedback.test.ts
+index 77797e2..d30c92d 100644
+--- a/tests/feedback.test.ts
++++ b/tests/feedback.test.ts
+@@ -203,7 +203,7 @@ test("the pool lists every idea, however many there are", async () => {
+ test("an unknown kind, an idea outside a suggestion and a stale version are refused; reclassifying leaves the pool", async () => {
+   const { id } = await ask("为什么模型榜上没有千问了", "198.51.100.21");
+   await assert.rejects(handle(id, { kind: "praise" }), /unknown kind/);
+-  await assert.rejects(handle(id, { kind: "question", idea: "千问上榜" }), /只有建议/);
++  await assert.rejects(handle(id, { kind: "question", idea: "千问上榜" }), /제안만/);
+   await assert.rejects(handle(id, { kind: "suggestion", idea: "名".repeat(41) }), /40/);
+   const stale = new Date((await listFeedback({ id })).rows[0]!.updated_at).toISOString();
+   await handle(id, { kind: "suggestion", idea: `千问上榜 ${T}` });
 diff --git a/tests/jina-listing.test.ts b/tests/jina-listing.test.ts
-index 48fa0f4..691f7d7 100644
+index b6d766a..11cfc74 100644
 --- a/tests/jina-listing.test.ts
 +++ b/tests/jina-listing.test.ts
-@@ -99,7 +99,8 @@ test("a listing parsed with selectors is read from Jina as rendered HTML, dates
+@@ -100,7 +100,8 @@ test("a listing parsed with selectors is read from Jina as rendered HTML, dates
    assert.equal(run.status, "ok", run.error ?? "");
    const [post] = await sql<{ title: string; published_at: Date; publication_time: string }[]>`SELECT title, published_at, publication_time FROM articles WHERE source_id = ${id}`;
    assert.equal(post?.title, `Rendered ${T}`);
@@ -257,7 +224,7 @@ index 48fa0f4..691f7d7 100644
    assert.equal(post?.publication_time, "2026-09-23");
  });
  
-@@ -115,7 +116,8 @@ test("a JSON listing embedded in a page is read from Jina as rendered HTML", asy
+@@ -116,7 +117,8 @@ test("a JSON listing embedded in a page is read from Jina as rendered HTML", asy
    const [post] = await sql<{ title: string; url: string; published_at: Date; publication_time: string }[]>`SELECT title, url, published_at, publication_time FROM articles WHERE source_id = ${id}`;
    assert.equal(post?.title, `Embedded ${T}`);
    assert.equal(post?.url, `https://example.org/articles/embedded-${T}`);
@@ -561,10 +528,10 @@ index b810ea5..28c25e7 100644
  
  test("legacy JSON and RSS formats keep their source date and zone", () => {
 diff --git a/tests/sources.standalone.test.ts b/tests/sources.standalone.test.ts
-index 22dbf39..c077128 100644
+index 8a9b603..2119eb2 100644
 --- a/tests/sources.standalone.test.ts
 +++ b/tests/sources.standalone.test.ts
-@@ -230,10 +230,11 @@ test("noise words match whatever their case", () => {
+@@ -236,10 +236,11 @@ test("noise words match whatever their case", () => {
  test("a time without a zone is read in the source's offset, in JSON lists and in detail page metadata", async () => {
    const list = async (extra: Record<string, unknown> = {}) => (await fetchJsonList({ id: "test-json", config: { url: `${site}/zoneless.json`, itemsPath: "result", titlePaths: ["title"], urlTemplate: "https://example.org/p/{id}", publishedAtPath: "publishDate", ...extra } } as never))
      .map((c) => c.publishedAt?.toISOString());
@@ -578,7 +545,7 @@ index 22dbf39..c077128 100644
  });
  
  test("posts embedded in a flight payload keep their own arrays and brackets inside strings", async () => {
-@@ -243,9 +244,10 @@ test("posts embedded in a flight payload keep their own arrays and brackets insi
+@@ -249,9 +250,10 @@ test("posts embedded in a flight payload keep their own arrays and brackets insi
  
  test("dates in yyyymmdd and in JSON-LD are read", async () => {
    const days = await fetchJsonList({ id: "test-json", config: { url: `${site}/days.json`, itemsPath: "data.list", titlePaths: ["ttl"], urlTemplate: "https://example.org/blog/view?seq={seq}", publishedAtPath: "day", publishedAtUnit: "yyyymmdd" } } as never);
@@ -627,10 +594,10 @@ index ef23d89..e134f73 100644
 +  assert.equal(isChineseBody({ language: "en", body_text: "An English article quoting 인공지능." }), false);
  });
 diff --git a/tests/timeline-day-counts.test.ts b/tests/timeline-day-counts.test.ts
-index 77a4760..0ee1e97 100644
+index 2b991cd..17dcc93 100644
 --- a/tests/timeline-day-counts.test.ts
 +++ b/tests/timeline-day-counts.test.ts
-@@ -19,7 +19,8 @@ const descending = (anchors: number[]) => anchors.sort((a, b) => b - a).map(anch
+@@ -20,7 +20,8 @@ const descending = (anchors: number[]) => anchors.sort((a, b) => b - a).map(anch
  test("day counts retain exact Beijing midnight, leap-day and year boundaries", () => {
    assert.deepEqual(countTimelineDays([], new Set()), {});
    // UTC inputs and calendar answers are independent of the production timezone helpers.
@@ -640,6 +607,47 @@ index 77a4760..0ee1e97 100644
      const midnight = Date.parse(time);
      return [midnight - 1, midnight, midnight, midnight + 1];
    });
+@@ -32,24 +33,25 @@ test("day counts retain exact Beijing midnight, leap-day and year boundaries", (
+ });
+ 
+ test("day headers name the year only for a day outside today's year", () => {
+-  assert.equal(monthDay("2026-10-05", "2026-10-19"), "10月5日");
+-  assert.equal(monthDay("2019-02-19", "2026-10-19"), "2019年2月19日");
+-  assert.equal(monthDay("2025-12-31", "2026-01-01"), "2025年12月31日");
+-  assert.equal(monthDay("2019-02-19"), "2月19日");
++  assert.equal(monthDay("2026-10-05", "2026-10-19"), "10월 5일");
++  assert.equal(monthDay("2019-02-19", "2026-10-19"), "2019년 2월 19일");
++  assert.equal(monthDay("2025-12-31", "2026-01-01"), "2025년 12월 31일");
++  assert.equal(monthDay("2019-02-19"), "2월 19일");
+   // The pages' dates (a story's report days, a topic's "更新" line, "月日 时:分") do the same, by Beijing's year.
+-  const october = Date.parse("2026-10-05T09:00:00+08:00");
+-  assert.equal(pageMonthDay("2026-10-05", october), "10月5日");
+-  assert.equal(pageMonthDay("2026-01-01", october), "1月1日");
+-  assert.equal(pageMonthDay("2019-02-19", october), "2019年2月19日");
++  const october = Date.parse("2026-10-05T09:00:00+09:00");
++  assert.equal(pageMonthDay("2026-10-05", october), "10월 5일");
++  assert.equal(pageMonthDay("2026-01-01", october), "1월 1일");
++  assert.equal(pageMonthDay("2019-02-19", october), "2019년 2월 19일");
++  // HotBrief ko: the site clock is Asia/Seoul, so the year turns at its midnight.
+   // The year turns at Beijing midnight: not yet at 23:30 on 31 December, and 00:30 on 1 January is still 31 December in UTC.
+-  const lastHalfHour = Date.parse("2026-12-31T23:30:00+08:00");
+-  assert.equal(pageMonthDay("2026-12-31", lastHalfHour), "12月31日");
+-  assert.equal(pageMonthDay("2027-01-01", lastHalfHour), "2027年1月1日");
+-  const firstHalfHour = Date.parse("2027-01-01T00:30:00+08:00");
++  const lastHalfHour = Date.parse("2026-12-31T23:30:00+09:00");
++  assert.equal(pageMonthDay("2026-12-31", lastHalfHour), "12월 31일");
++  assert.equal(pageMonthDay("2027-01-01", lastHalfHour), "2027년 1월 1일");
++  const firstHalfHour = Date.parse("2027-01-01T00:30:00+09:00");
+   assert.equal(new Date(firstHalfHour).getUTCFullYear(), 2026);
+-  assert.equal(pageMonthDay("2026-12-31", firstHalfHour), "2026年12月31日");
+-  assert.equal(pageMonthDay("2027-01-01", firstHalfHour), "1月1日");
+-  assert.equal(monthDayTime("2019-02-19T04:00:00.000Z"), "2019年2月19日 12:00");
++  assert.equal(pageMonthDay("2026-12-31", firstHalfHour), "2026년 12월 31일");
++  assert.equal(pageMonthDay("2027-01-01", firstHalfHour), "1월 1일");
++  assert.equal(monthDayTime("2019-02-19T04:00:00.000Z"), "2019년 2월 19일 13:00");
+ });
+ 
+ test("deterministic varied timelines match the full-scan reference", () => {
 diff --git a/tests/topic-membership.test.ts b/tests/topic-membership.test.ts
 index fbbc9b5..7bd2e2d 100644
 --- a/tests/topic-membership.test.ts
@@ -669,7 +677,7 @@ index fbbc9b5..7bd2e2d 100644
    await sql`INSERT INTO sources (id, name, kind, tier) VALUES (${prefix}, ${prefix}, 'rss', 'T1')`;
    for (const [i, row] of cases.entries()) {
 diff --git a/tests/topics.test.ts b/tests/topics.test.ts
-index c7519c7..fab05ac 100644
+index 0c523f0..e0bec2b 100644
 --- a/tests/topics.test.ts
 +++ b/tests/topics.test.ts
 @@ -50,6 +50,7 @@ interface Report {
@@ -698,7 +706,16 @@ index c7519c7..fab05ac 100644
  
    const anthropic = await members("anthropic");
    for (const id of [about, product, english]) assert.ok(anthropic.includes(id), "about Anthropic");
-@@ -126,8 +127,8 @@ test("a company topic takes the articles about it, not the ones that only mentio
+@@ -126,7 +127,7 @@ test("a company topic takes the articles about it, not the ones that only mentio
+ 
+ test("renaming a company topic keeps its old full name usable for search", async () => {
+   const id = await report({at: hoursAgo(2), title: `Kimi 新模型上线 ${T}`, subjects: ['kimi'], selected: false});
+-  for (const query of ['Kimi / 月之暗面', '月之暗面 / Kimi']) {
++  for (const query of ['Kimi / Moonshot AI', 'Moonshot AI / Kimi']) {
+     const res = await app.inject({method: 'GET', url: `/api/site/pool?q=${encodeURIComponent(query)}`});
+     assert.equal(res.statusCode, 200);
+     assert.ok(ids(JSON.parse(res.body).items).includes(id), 'full company names must still find subject-tagged reports');
+@@ -135,8 +136,8 @@ test("renaming a company topic keeps its old full name usable for search", async
  
  test("a story page names the topics of its reports", async () => {
    const launch = await story(`智能体框架 V2 发布 ${T}`);
@@ -710,7 +727,7 @@ index c7519c7..fab05ac 100644
  
  test("withdrawn articles stay out of lists and counts", async () => {
 diff --git a/tests/translate.test.ts b/tests/translate.test.ts
-index 714ab80..b426623 100644
+index 01b5738..00cdf23 100644
 --- a/tests/translate.test.ts
 +++ b/tests/translate.test.ts
 @@ -79,8 +79,9 @@ after(async () => {

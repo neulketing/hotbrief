@@ -50,7 +50,11 @@ if [ "$mode" = "--overlay" ]; then
 fi
 
 apply_patch() {
-  git apply --whitespace=nowarn "$1" 2>/dev/null || { git apply --3way --whitespace=nowarn "$1" && git reset -q -- apps packages tests; }
+  if ! git apply --whitespace=nowarn "$1" 2>/dev/null; then
+    # A 3-way merge that leaves conflict markers must stop here: set -e does not catch a failure inside the && list.
+    git apply --3way --whitespace=nowarn "$1" || { echo "Patch: $1 does not merge with these files; rebuild it on this upstream (conflicts marked above)." >&2; exit 1; }
+    git reset -q -- apps packages tests
+  fi
   echo "Patch: $1 applied."
 }
 apply_patch "l10n/patches/$lang.patch"
