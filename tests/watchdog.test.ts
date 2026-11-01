@@ -13,10 +13,12 @@ const envNames = ["FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_ALERT_CHAT_ID", 
 const savedEnv = new Map(envNames.map((name) => [name, process.env[name]]));
 const attempts: string[] = [];
 const hooked: string[] = [];
+// When Feishu got each webhook request: the custom bot's limits are counted there.
 const hookedAt: number[] = [];
+// Milliseconds the next webhook request takes to reach Feishu.
+let hookDelay = 0;
 const hookedBytes: number[] = [];
 let failing = false;
-let webhookDelay = 0;
 const provider = await stub(async (_hit, req) => {
   if (req.url.endsWith("/auth/v3/tenant_access_token/internal")) return { code: 0, tenant_access_token: "fictional-token", expire: 7200 };
   const body = JSON.parse(req.body);
@@ -36,10 +38,10 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
   const url = new URL(input instanceof Request ? input.url : String(input));
   assert.equal(url.origin, "https://open.feishu.cn");
-  if (webhookDelay && url.pathname.includes("/bot/v2/hook/")) {
-    const delay = webhookDelay;
-    webhookDelay = 0;
-    await new Promise((resolve) => setTimeout(resolve, delay));
+  if (url.pathname === `/open-apis/bot/v2/hook/test-${T}` && hookDelay) {
+    const ms = hookDelay;
+    hookDelay = 0;
+    await new Promise((resolve) => setTimeout(resolve, ms));
   }
   return realFetch(`${provider.url}${url.pathname}${url.search}`, init);
 }) as typeof fetch;
@@ -55,9 +57,9 @@ beforeEach(async () => {
   attempts.length = 0;
   hooked.length = 0;
   hookedAt.length = 0;
+  hookDelay = 0;
   hookedBytes.length = 0;
   failing = false;
-  webhookDelay = 0;
   process.env.FEISHU_APP_ID = "test-app";
   process.env.FEISHU_APP_SECRET = "test-secret";
   process.env.FEISHU_ALERT_CHAT_ID = `oc_test_${T}`;
@@ -120,12 +122,23 @@ test("the alert webhook keeps within the custom bot's limits: 20 KB a request, 1
   const lines = Array.from({ length: 900 }, (_, i) => `第 ${i} 个信源：连续抓取失败，读者看不到它的新内容`);
   lines.push("长".repeat(9000));
   lines.push(...Array.from({ length: 400 }, () => String.raw`详情：{"error":"\"bad\" \\path\\"}`));
-  // A slow first delivery must not let the next reserved slot arrive too soon.
-  webhookDelay = 250;
   await sendAlert("系统日报", lines);
   assert.ok(hooked.length >= 3);
   assert.ok(hookedBytes.every((n) => n <= 20 * 1024), `request sizes ${hookedBytes.join(", ")}`);
   assert.match(hooked.join(""), /^(【[^】]+】)?系统日报\n/);
   assert.ok(hooked.join("").endsWith(`系统日报\n${lines.join("\n")}`), "the pieces are the whole text, in order");
-  for (let i = 1; i < hookedAt.length; i++) assert.ok(hookedAt[i]! - hookedAt[i - 1]! >= 590, "at most 100 a minute");
+  for (let i = 1; i < hookedAt.length; i++) assert.ok(hookedAt[i]! - hookedAt[i - 1]! >= 600, `at most 100 a minute: gaps ${gaps()}`);
 });
+
+// A late timer, a busy process or a slow network: none of them may bring two requests closer at Feishu.
+test("a request that reaches Feishu late still leaves 600 ms before the next one", async () => {
+  process.env.FEISHU_ALERT_WEBHOOK_URL = `https://open.feishu.cn/open-apis/bot/v2/hook/test-${T}`;
+  hookDelay = 300;
+  await sendAlert("系统日报", Array.from({ length: 900 }, (_, i) => `第 ${i} 个信源：连续抓取失败，读者看不到它的新内容`));
+  assert.ok(hookedAt.length >= 3);
+  for (let i = 1; i < hookedAt.length; i++) assert.ok(hookedAt[i]! - hookedAt[i - 1]! >= 600, `gaps ${gaps()}`);
+});
+
+function gaps() {
+  return hookedAt.slice(1).map((t, i) => Math.round(t - hookedAt[i]!)).join(", ");
+}
