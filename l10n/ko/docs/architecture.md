@@ -1,5 +1,5 @@
 # 아키텍처
-> 원본 [docs/architecture.md](../../../docs/architecture.md)(AIHOT, 중국어, 커밋 b868d38)의 한국어 번역입니다. 한국어판에서 바뀌는 부분은 [README.ko.md](../../../README.ko.md)를 보세요.
+> 원본 [docs/architecture.md](../../../docs/architecture.md)(AIHOT, 중국어, 커밋 38d130f)의 한국어 번역입니다. 한국어판에서 바뀌는 부분은 [README.ko.md](../../../README.ko.md)를 보세요.
 
 ```mermaid
 flowchart LR
@@ -105,7 +105,7 @@ flowchart LR
 ```bash
 npm run typecheck
 DATABASE_URL=postgres://127.0.0.1:5432/myhot_test npm test
-npm run build -w @aihot/web && node --test apps/web/tests/*.test.ts
+npm run build -w @aihot/web && npm run test:web
 ```
 
 `DATABASE_URL` 이 가리키는 데이터베이스 이름은 `_test` 나 `_ci` 로 끝나야 합니다. 없으면 자동으로 만들고 마이그레이션합니다. 테스트 파일마다 그 데이터베이스의 사본 하나에서 병렬로 돌기 때문에, 데이터베이스 계정에 데이터베이스를 만들 권한(`CREATEDB`)이 있어야 합니다. 테스트는 어떤 외부 서비스에도 접속하지 않습니다. 모델과 유료 API 는 모두 로컬 가짜 서비스가 답합니다.

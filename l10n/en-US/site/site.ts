@@ -205,6 +205,8 @@ export const REPORTS = {
 export const ALERTS = {
   /** Minutes without a new article before the "the site stopped collecting" alert (at most a day); ALERT_QUIET_MINUTES wins. */
   quietMinutes: 360,
+  /** Minutes before the alert when editorial sources keep fetching successfully but publish no new articles (at most a day). */
+  quietWhileFetchingMinutes: 720,
   usualFlow: null as string | null,
   /** How to read the worker's logs, in the "worker stopped" alert. */
   workerLogs: "check the worker logs (docker compose logs worker)",
