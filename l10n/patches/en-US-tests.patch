@@ -427,7 +427,7 @@ index 4278a90..23bf79e 100644
  
  test("RSS gives no pubDate for an item without a known publication time", async () => {
 diff --git a/tests/publication.test.ts b/tests/publication.test.ts
-index a88a632..5bb258f 100644
+index ccb3e31..37991bd 100644
 --- a/tests/publication.test.ts
 +++ b/tests/publication.test.ts
 @@ -24,6 +24,7 @@ import { SELECTION } from "@aihot/industry/selection";
@@ -446,8 +446,8 @@ index a88a632..5bb258f 100644
 +  await sql`UPDATE articles SET language = 'de', body_html = ${table} WHERE id = ${id}`;
    await sql`INSERT INTO translations (article_id, revision, body_html, body_text, origin) VALUES (${id}, 1, ${table.replace('Benchmark results', '基准结果').replace('Model', '模型').replace('Score', '分数')}, '基准结果', 'source')`;
    await publishArticle(id, released());
-   const response = await get(`/items/${id}/markdown`);
-@@ -152,7 +153,7 @@ test("Markdown retains numeric superscripts, subscripts and fenced code while re
+   const raw = await app.inject({ method: "GET", url: `/items/${id}/markdown` });
+@@ -153,7 +154,7 @@ test("Markdown retains numeric superscripts, subscripts and fenced code while re
  
  test("site reading sends one language while exports retain both, including after withdrawal", async () => {
    const id = await article();
@@ -801,7 +801,7 @@ index cc90646..2a7762e 100644
      VALUES (${articleId},1,'rule','pass','ai-models',${`拒绝测试${T}`},'摘要','理由',90,true)`;
    await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
 diff --git a/tests/translate.test.ts b/tests/translate.test.ts
-index 01b5738..a839749 100644
+index 167b282..ce24bd7 100644
 --- a/tests/translate.test.ts
 +++ b/tests/translate.test.ts
 @@ -13,6 +13,7 @@ import { autoReleaseUnknownReceipts } from "@aihot/backend/operations/recover";
