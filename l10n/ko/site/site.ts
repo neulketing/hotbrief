@@ -204,6 +204,8 @@ export const REPORTS = {
 export const ALERTS = {
   /** 몇 분 동안 새 글이 안 들어오면 "새 글 수집이 멈췄다"고 경보할지(최대 하루). 환경변수 ALERT_QUIET_MINUTES 가 우선. */
   quietMinutes: 360,
+  /** editorial 출처는 가져오기가 계속 성공하는데 새 글만 없을 때, 몇 분이 지나야 경보할지(최대 하루). */
+  quietWhileFetchingMinutes: 720,
   usualFlow: null as string | null,
   /** worker 가 멈췄다는 경보에서 로그 보는 법. */
   workerLogs: "worker 로그를 확인하세요(docker compose logs worker)",

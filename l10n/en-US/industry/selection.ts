@@ -22,7 +22,7 @@ export const SELECTION = {
    * It only raises, never lowers: tiers whose threshold is already higher (media) are unaffected. Sources without a class
    * go by tier alone.
    *   ecosystem Ecosystem & infrastructure: chips and hardware, inference and cloud, model hosting, frameworks and
-   *             toolchains, engineering and developer blogs
+   *             toolchains, security-research vendors, engineering and developer blogs
    *   leaderboard Leaderboards: evaluators that benchmark and rank models from many companies
    */
   classes: {

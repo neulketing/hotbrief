@@ -1202,7 +1202,7 @@ index 910eb59..622c131 100644
          </p>
        )}
 diff --git a/apps/web/app/features/feed/Filters.tsx b/apps/web/app/features/feed/Filters.tsx
-index 66a0ce4..02e9f4a 100644
+index f2c0b97..99a2115 100644
 --- a/apps/web/app/features/feed/Filters.tsx
 +++ b/apps/web/app/features/feed/Filters.tsx
 @@ -44,7 +44,7 @@ function filterKey(category: CategoryKey | null, channel: ChannelKey): string {
@@ -1300,7 +1300,7 @@ index 66a0ce4..02e9f4a 100644
 +        placeholder="제목, 요약 검색…"
          maxLength={200}
          autoComplete="off"
-         className="h-[42px] w-full rounded-full bg-well pl-10 pr-10 text-[14px] text-ink outline-none ring-1 ring-inset ring-line-soft transition-[background-color,box-shadow] placeholder:text-ink-4 hover:ring-line-strong focus:bg-surface focus:shadow-[0_0_0_3px_var(--accent-soft)] focus:ring-accent"
+         className="h-[42px] w-full rounded-full bg-well pl-10 pr-10 text-[16px] text-ink outline-none ring-1 ring-inset ring-line-soft transition-[background-color,box-shadow] placeholder:text-ink-4 hover:ring-line-strong focus:bg-surface focus:shadow-[0_0_0_3px_var(--accent-soft)] focus:ring-accent sm:text-[14px]"
 @@ -195,7 +195,7 @@ export function SearchField({ defaultValue = "", keep = {} }: { defaultValue?: s
        {value ? (
          <button
@@ -1766,19 +1766,19 @@ index 654a76f..005e15a 100644
          {rows.map((r) => (
            <li key={r.key}>
 diff --git a/apps/web/app/features/item/StoryFollowups.tsx b/apps/web/app/features/item/StoryFollowups.tsx
-index d24b607..89bcd4d 100644
+index 9ec9137..0e2fd9c 100644
 --- a/apps/web/app/features/item/StoryFollowups.tsx
 +++ b/apps/web/app/features/item/StoryFollowups.tsx
-@@ -35,7 +35,7 @@ export function StoryFollowups({ story, currentId }: { story: StoryRef; currentI
-     return () => { observer?.disconnect(); controller.abort(); };
-   }, [story.publicId, currentId]);
-   return <div ref={anchor}>
--    <noscript><a href={`/story/${story.publicId}`}>查看事件全部后续</a></noscript>
-+    <noscript><a href={`/story/${story.publicId}`}>이슈 후속 전체 보기</a></noscript>
-     {items && items.length > 0 && <Followups items={items} more={more} story={story} />}
-   </div>;
+@@ -8,7 +8,7 @@ export function StoryFollowups({ followups, story, currentId }: { followups: Sto
+   const items = followups?.items.filter((d) => d.representative.id !== currentId) ?? [];
+   return items.length > 0
+     ? <Followups items={items} more={followups!.more} story={story} />
+-    : <noscript><a href={`/story/${story.publicId}`}>查看事件全部后续</a></noscript>;
++    : <noscript><a href={`/story/${story.publicId}`}>이슈 후속 전체 보기</a></noscript>;
  }
-@@ -45,16 +45,16 @@ function Followups({items, more, story}: {items: StoryFollowup[]; more: boolean;
+ 
+ function Followups({items, more, story}: {items: StoryFollowup[]; more: boolean; story: StoryRef}) {
+@@ -16,16 +16,16 @@ function Followups({items, more, story}: {items: StoryFollowup[]; more: boolean;
      <section className="mt-10 border-t border-line pt-5">
        <div className="mb-2 flex items-center justify-between">
          <h2 className="text-[14px] font-semibold text-ink">
@@ -1891,7 +1891,7 @@ index 3428fc4..a38dbb2 100644
        )}
      </nav>
 diff --git a/apps/web/app/features/report/ReportPaper.tsx b/apps/web/app/features/report/ReportPaper.tsx
-index db1ce69..3b775cc 100644
+index 8111e4d..53acbed 100644
 --- a/apps/web/app/features/report/ReportPaper.tsx
 +++ b/apps/web/app/features/report/ReportPaper.tsx
 @@ -54,7 +54,7 @@ function Masthead({ report, index, quiet }: { report: ReportDetail; index: Repor
@@ -1932,18 +1932,20 @@ index db1ce69..3b775cc 100644
      </a>
    );
  }
-@@ -136,8 +136,8 @@ function Related({ items, className = "" }: { items: ReportCitation[]; className
- function Coverage({ c }: { c: ReportCitation }) {
+@@ -137,9 +137,9 @@ function Coverage({ c }: { c: ReportCitation }) {
    return (
      <>
--      {!!c.otherSources && <span className="shrink-0 text-ink-4">另外 {c.otherSources} 家也报道了</span>}
+       {!!c.otherSources && (c.storyId
+-        ? <IntentLink viewTransition to={`/story/${c.storyId}`} className="shrink-0 text-ink-4 transition-colors hover:text-accent">另外 {c.otherSources} 家也报道了</IntentLink>
+-        : <span className="shrink-0 text-ink-4">另外 {c.otherSources} 家也报道了</span>)}
 -      {c.followUp && <Badge title={`${monthDay(c.followUp)}的日报报道过这件事，这里是新进展`}>跟进</Badge>}
-+      {!!c.otherSources && <span className="shrink-0 text-ink-4">다른 출처 {c.otherSources}곳도 보도</span>}
++        ? <IntentLink viewTransition to={`/story/${c.storyId}`} className="shrink-0 text-ink-4 transition-colors hover:text-accent">다른 출처 {c.otherSources}곳도 보도</IntentLink>
++        : <span className="shrink-0 text-ink-4">다른 출처 {c.otherSources}곳도 보도</span>)}
 +      {c.followUp && <Badge title={`${monthDay(c.followUp)} 브리핑에서 다룬 일의 새 진행입니다`}>후속</Badge>}
      </>
    );
  }
-@@ -211,7 +211,7 @@ function leadStoryOf(report: ReportDetail): ReportCitation | null {
+@@ -213,7 +213,7 @@ function leadStoryOf(report: ReportDetail): ReportCitation | null {
    return report.sections.flatMap((s) => s.items).find((c) => c.itemId === report.leadItemId && c.available) ?? null;
  }
  
@@ -1952,7 +1954,7 @@ index db1ce69..3b775cc 100644
  
  /**
   * Sections as pages. A story cited twice appears once, and
-@@ -250,7 +250,7 @@ function LeadPicture({ cover, onError, priority = false, className = "" }: { cov
+@@ -252,7 +252,7 @@ function LeadPicture({ cover, onError, priority = false, className = "" }: { cov
            width={cover.width ?? undefined} height={cover.height ?? undefined}
            alt="" loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} decoding="async" onError={onError} className="size-full object-cover" />
        </div>
@@ -1961,7 +1963,7 @@ index db1ce69..3b775cc 100644
      </figure>
    );
  }
-@@ -261,8 +261,8 @@ function LeadPicture({ cover, onError, priority = false, className = "" }: { cov
+@@ -263,8 +263,8 @@ function LeadPicture({ cover, onError, priority = false, className = "" }: { cov
   */
  function Overview({ text }: { text: string }) {
    return (
@@ -1972,7 +1974,7 @@ index db1ce69..3b775cc 100644
        <p className="mt-4 max-w-[46em] text-[16.5px] leading-[1.9] text-ink-2 @[560px]:text-justify @[880px]:text-[17.5px]">{text}</p>
      </section>
    );
-@@ -282,14 +282,14 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail;
+@@ -284,14 +284,14 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail;
    const dek = daily || !leadStory ? (report.lead?.leadParagraph ?? leadStory?.summary ?? report.overview) : leadStory.summary;
    const highlights = report.highlights.filter((h) => !leadStory || keyOf(h) !== keyOf(leadStory)).slice(0, 3);
    const inPage = new Set(pages.flatMap((p) => p.items.map((c) => c.itemId)).filter(Boolean));
@@ -1991,7 +1993,7 @@ index db1ce69..3b775cc 100644
          {cover && wide && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} priority className="order-2 mt-5 @[560px]:order-1" />}
          <h2 className="order-1 mt-4 text-[32px] font-black leading-[1.28] tracking-[-0.03em] text-ink [text-wrap:balance] @[520px]:text-[40px] @[560px]:order-2 @[1040px]:text-[48px] @[1040px]:leading-[1.22]">
            {leadStory?.itemId ? (
-@@ -319,7 +319,7 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail;
+@@ -321,7 +321,7 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail;
        <aside className="min-w-0 border-t border-line py-7 @[880px]:border-t-0 @[880px]:py-10 @[880px]:pl-8">
          {highlights.length > 0 && (
            <>
@@ -2000,7 +2002,7 @@ index db1ce69..3b775cc 100644
              <ol className="mt-2">
                {highlights.map((h, i) => {
                  const anchor = anchorOf(h);
-@@ -351,8 +351,8 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail;
+@@ -353,8 +353,8 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail;
            </>
          )}
          {index.length > 0 && (
@@ -2011,7 +2013,7 @@ index db1ce69..3b775cc 100644
              <ol className="mt-3">
                {index.map((p, i) => (
                  <li key={p.id}>
-@@ -377,7 +377,7 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail;
+@@ -379,7 +379,7 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail;
   */
  function QuietFront({ lead }: { lead: NonNullable<ReportDetail["lead"]> }) {
    return (
@@ -2020,7 +2022,7 @@ index db1ce69..3b775cc 100644
        <h2 className="text-[32px] font-black leading-[1.28] tracking-[-0.03em] text-ink [text-wrap:balance] @[520px]:text-[40px] @[1040px]:text-[48px] @[1040px]:leading-[1.22]">
          {lead.title}
        </h2>
-@@ -410,7 +410,7 @@ function Neighbours({ report, index }: { report: ReportDetail; index: ReportNavi
+@@ -412,7 +412,7 @@ function Neighbours({ report, index }: { report: ReportDetail; index: ReportNavi
    const cell = "group flex min-w-0 flex-col py-6";
    const title = "mt-2.5 line-clamp-2 text-[16px] font-bold leading-[1.5] text-ink transition-colors group-hover:text-accent @[880px]:text-[18px]";
    return (
@@ -2029,7 +2031,7 @@ index db1ce69..3b775cc 100644
        {report.prev ? (
          <Link to={reportPath(report.kind, report.prev)} className={`${cell} pr-5 @[880px]:pr-10`}>
            <span className="inline-flex items-center gap-1 text-[12px] text-ink-4">
-@@ -441,7 +441,7 @@ function History({ report, index }: { report: ReportDetail; index: ReportNavigat
+@@ -443,7 +443,7 @@ function History({ report, index }: { report: ReportDetail; index: ReportNavigat
    const label = REPORT_NAMES[report.kind];
    return (
      <section id="report-history" className="scroll-mt-[calc(var(--bar-h)+1.5rem)] pt-12">
@@ -2038,7 +2040,7 @@ index db1ce69..3b775cc 100644
        <ul className="mt-3">
          {others.map((e) => (
            <li key={e.key}>
-@@ -461,9 +461,9 @@ export function reportOutline(report: ReportDetail): OutlineEntry[] {
+@@ -463,9 +463,9 @@ export function reportOutline(report: ReportDetail): OutlineEntry[] {
    const pages = pagesOf(report, leadStoryOf(report));
    if (pages.length === 0 && report.flashes.length === 0) return [];
    return [
@@ -2051,7 +2053,7 @@ index db1ce69..3b775cc 100644
    ];
  }
  
-@@ -490,7 +490,7 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
+@@ -492,7 +492,7 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
          <SectionPage key={p.id} id={p.id} no={i + 1} label={p.label}>
            {p.summary && (
              <p className="border-b border-line py-5 text-[15.5px] leading-[1.9] text-ink-2 @[560px]:text-justify">
@@ -2060,7 +2062,7 @@ index db1ce69..3b775cc 100644
                {p.summary}
              </p>
            )}
-@@ -499,7 +499,7 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
+@@ -501,7 +501,7 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
        ))}
  
        {report.flashes.length > 0 && (
@@ -2069,7 +2071,7 @@ index db1ce69..3b775cc 100644
            <ul className={`${COLUMNS} @[1040px]:columns-3`}>
              {report.flashes.map((f, i) => (
                <li key={`${keyOf(f)}-${i}`} className="flex break-inside-avoid gap-2.5 border-b border-line py-3 text-[14.5px] leading-[1.65]">
-@@ -518,7 +518,7 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
+@@ -520,7 +520,7 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
                      <span className="text-ink">{f.title}</span>
                    )}
                    {f.available && <span className="ml-2 text-[12px] text-ink-4">{f.sourceName}</span>}
@@ -2078,7 +2080,7 @@ index db1ce69..3b775cc 100644
                  </span>
                </li>
              ))}
-@@ -529,11 +529,11 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
+@@ -531,11 +531,11 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
        <Neighbours report={report} index={index} />
        {!daily && <History report={report} index={index} />}
        <footer className="py-10 text-center">
@@ -2609,25 +2611,6 @@ index edd2b8d..6b66a9a 100644
          itemListOrder: "https://schema.org/ItemListOrderDescending",
          numberOfItems: reports.length,
          itemListElement: reports.map((report, index) => ({ "@type": "ListItem", position: index + 1, name: report.title })),
-diff --git a/apps/web/app/lib/site-copy.ts b/apps/web/app/lib/site-copy.ts
-index 70881e2..16f810f 100644
---- a/apps/web/app/lib/site-copy.ts
-+++ b/apps/web/app/lib/site-copy.ts
-@@ -3,12 +3,12 @@ import { parseCopyFile, renderMarkdown } from "./markdown";
- import { siteUrl } from "./seo";
- 
- function stripPageNotes(body: string): string {
--  return body.replace(/^页脚[^\n]*$/gm, "").trim();
-+  return body.replace(/^(?:页脚|바닥글)[^\n]*$/gm, "").trim();
- }
- 
- export function prepareCopy(md: string, firstSection?: RegExp) {
-   const doc = parseCopyFile(md, firstSection);
--  const footerLine = /^页脚[：:](.+)$/m.exec(doc.body)?.[1]?.trim() ?? null;
-+  const footerLine = /^(?:页脚|바닥글)[：:](.+)$/m.exec(doc.body)?.[1]?.trim() ?? null;
-   doc.body = stripPageNotes(doc.body);
-   return { doc, rendered: renderMarkdown(doc.body, siteUrl()), footerLine };
- }
 diff --git a/apps/web/app/root.tsx b/apps/web/app/root.tsx
 index 922b01f..9411dbc 100644
 --- a/apps/web/app/root.tsx
@@ -2969,7 +2952,7 @@ index 51cab9e..bed55ff 100644
          </p>
        </div>
 diff --git a/apps/web/app/routes/admin/audit.tsx b/apps/web/app/routes/admin/audit.tsx
-index debcac1..1a6a950 100644
+index eb04a22..578cb30 100644
 --- a/apps/web/app/routes/admin/audit.tsx
 +++ b/apps/web/app/routes/admin/audit.tsx
 @@ -11,7 +11,7 @@ export async function loader({ request }: Route.LoaderArgs) {
@@ -4884,7 +4867,7 @@ index 5cad030..b36fba0 100644
          </Card>
        </div>
 diff --git a/apps/web/app/routes/admin/source.tsx b/apps/web/app/routes/admin/source.tsx
-index 10fb6af..1b906a1 100644
+index f7674c1..817b917 100644
 --- a/apps/web/app/routes/admin/source.tsx
 +++ b/apps/web/app/routes/admin/source.tsx
 @@ -18,7 +18,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
@@ -5040,7 +5023,7 @@ index 10fb6af..1b906a1 100644
                  ] as const).map(([k, label]) => (
                    <label key={k} className="inline-flex items-center gap-2">
                      <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.checked })} />
-@@ -232,76 +232,76 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
+@@ -232,75 +232,75 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
                </div>
              </div>
              <div className="mt-4">
@@ -5121,10 +5104,8 @@ index 10fb6af..1b906a1 100644
                    render: (r) => (
                      <span className="inline-flex gap-1">
                        <Badge tone={r.status === "ok" ? "ok" : r.status === "failed" ? "bad" : "muted"} title={r.error ?? undefined}>{r.status}</Badge>
--                      {!!r.detail?.presentationFailures?.length && <Badge tone="warn" title={r.detail.presentationFailures.map(f => `${f.url}: ${f.error}`).join("\n")}>正文展示待处理 {r.detail.presentationFailures.length}</Badge>}
 -                      {!!r.detail?.dropped && <Badge tone="bad" title="有一段更早的帖子没能读完，其中的内容可能漏采">可能漏采</Badge>}
 -                      {!r.detail?.dropped && !!r.detail?.backlog && <Badge tone="warn" title="帖子多于一轮能读的页数，余下的在后面几轮接着读">续读 {r.detail.backlog} 段</Badge>}
-+                      {!!r.detail?.presentationFailures?.length && <Badge tone="warn" title={r.detail.presentationFailures.map(f => `${f.url}: ${f.error}`).join("\n")}>본문 표시 처리 대기 {r.detail.presentationFailures.length}</Badge>}
 +                      {!!r.detail?.dropped && <Badge tone="bad" title="이전 게시물 한 구간을 다 읽지 못해 일부를 놓쳤을 수 있습니다">누락 가능</Badge>}
 +                      {!r.detail?.dropped && !!r.detail?.backlog && <Badge tone="warn" title="게시물이 한 번에 읽을 수 있는 쪽수보다 많아 나머지는 다음 몇 번에 이어 읽습니다">이어 읽기 {r.detail.backlog}구간</Badge>}
                      </span>
@@ -5142,7 +5123,7 @@ index 10fb6af..1b906a1 100644
              {history.length ? (
                <ul className="space-y-3 text-[12.5px]">
                  {history.map((h, i) => (
-@@ -312,7 +312,7 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
+@@ -311,7 +311,7 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
                  ))}
                </ul>
              ) : (
@@ -5151,7 +5132,7 @@ index 10fb6af..1b906a1 100644
              )}
            </Card>
          </div>
-@@ -320,28 +320,28 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
+@@ -319,28 +319,28 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
  
        <ReasonDialog
          open={dialog === "save"}
@@ -5675,7 +5656,7 @@ index 763e2cc..e85d719 100644
                        <span className="mt-1 block text-[12px] text-ink-4">
                          <span className="num">{e.count}</span>{` ${ENTRIES_UNIT}`}
 diff --git a/apps/web/app/routes/feedback.tsx b/apps/web/app/routes/feedback.tsx
-index 0549cfc..24917af 100644
+index a838c61..57b0930 100644
 --- a/apps/web/app/routes/feedback.tsx
 +++ b/apps/web/app/routes/feedback.tsx
 @@ -12,14 +12,14 @@ import { PhoneBar } from "../components/shell/PhoneBar";
@@ -5803,7 +5784,7 @@ index 0549cfc..24917af 100644
 -              邮箱 <span className="font-normal text-ink-4">（选填）</span>
 +              이메일 <span className="font-normal text-ink-4">(선택)</span>
              </label>
-             <input id="fb-email" type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder={SITE.feedbackEmailHint} className={`${field} h-11 px-4 text-[14.5px]`} />
+             <input id="fb-email" type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder={SITE.feedbackEmailHint} className={`${field} h-11 px-4 text-[16px] sm:text-[14.5px]`} />
            </div>
  
            <div>
@@ -6116,10 +6097,10 @@ index 6251747..0fcb22a 100644
            <dl className="flex flex-wrap gap-x-5 gap-y-1.5 pt-1">
              {Object.values(BADGES).map((b) => (
 diff --git a/apps/web/app/routes/item.tsx b/apps/web/app/routes/item.tsx
-index eaab21d..a1e0886 100644
+index d0e2b7b..1a98186 100644
 --- a/apps/web/app/routes/item.tsx
 +++ b/apps/web/app/routes/item.tsx
-@@ -55,7 +55,7 @@ export async function clientLoader(args: ClientLoaderFunctionArgs) {
+@@ -57,7 +57,7 @@ export async function clientLoader(args: ClientLoaderFunctionArgs) {
  clientLoader.hydrate = true as const;
  
  export function meta({ loaderData }: Route.MetaArgs) {
@@ -6128,7 +6109,7 @@ index eaab21d..a1e0886 100644
    const { item } = loaderData;
    if (!item) return [{ title: titled(loaderData.preview.title) }];
    return pageMeta({
-@@ -69,7 +69,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
+@@ -71,7 +71,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
        articleLd({ path: `/items/${item.id}`, headline: item.title, description: item.summary, publishedAt: item.publishedAt, image: `/og/items/${item.id}.png`, basedOn: item.links.original }),
        breadcrumbLd([
          { name: SITE.name, path: "/" },
@@ -6137,7 +6118,7 @@ index eaab21d..a1e0886 100644
          { name: item.title, path: `/items/${item.id}` },
        ]),
      ],
-@@ -124,8 +124,8 @@ function ArticleOutline({ outline }: { outline: SiteItemDetail["outline"] }) {
+@@ -126,8 +126,8 @@ function ArticleOutline({ outline }: { outline: SiteItemDetail["outline"] }) {
      if ((up && nav.scrollTop <= 0) || (down && nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 1)) e.preventDefault();
    };
    return (
@@ -6148,7 +6129,7 @@ index eaab21d..a1e0886 100644
          <ol className="space-y-0.5 border-l border-line">
            {outline.map((o) => (
              <li key={o.id}>
-@@ -207,13 +207,13 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
+@@ -209,13 +209,13 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
    const shownAt = preview.publishedAt ?? preview.timelineAt;
    return (
      <div className="mx-auto max-w-[var(--page-max-reading)] pb-8">
@@ -6164,7 +6145,7 @@ index eaab21d..a1e0886 100644
            <time dateTime={shownAt} className="mono">{fullDateTime(shownAt)}</time>
            {preview.selected && <span className="ml-1">{preview.sameEvent ? <SameEventBadge /> : <SelectedBadge />}</span>}
            {shownScore(preview.score) !== null && (
-@@ -225,7 +225,7 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
+@@ -227,7 +227,7 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
          {!isX && <h1 data-page-title="" className="text-[26px] font-bold leading-[1.38] tracking-[-0.01em] text-ink">{preview.title}</h1>}
          {preview.summary && (
            <section className={isX ? "mt-4" : "mt-7"}>
@@ -6173,7 +6154,7 @@ index eaab21d..a1e0886 100644
              <p className="text-[18px] leading-[1.7] text-ink">{preview.summary}</p>
            </section>
          )}
-@@ -243,9 +243,9 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
+@@ -245,9 +245,9 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
        </article>
        <ReaderToolbar
          item={preview}
@@ -6185,7 +6166,7 @@ index eaab21d..a1e0886 100644
          }}
        />
        <Toast text={toast} />
-@@ -260,13 +260,13 @@ function ItemGone() {
+@@ -262,13 +262,13 @@ function ItemGone() {
    const gone = isRouteErrorResponse(error) && error.status === 404;
    return (
      <div className="mx-auto max-w-sm pb-8">
@@ -6203,7 +6184,7 @@ index eaab21d..a1e0886 100644
            </button>
          )}
        </div>
-@@ -291,12 +291,12 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -293,12 +293,12 @@ function ItemView({ item, followups }: Loaded) {
    };
    const share = async () => {
      const r = await shareOrCopy(item);
@@ -6218,7 +6199,7 @@ index eaab21d..a1e0886 100644
      } catch {
        // clipboard unavailable
      }
-@@ -306,21 +306,21 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -308,21 +308,21 @@ function ItemView({ item, followups }: Loaded) {
        const res = await fetch(`/items/${item.id}/markdown`);
        if (!res.ok) throw new Error(String(res.status));
        await copyText(await res.text());
@@ -6245,7 +6226,7 @@ index eaab21d..a1e0886 100644
  
    const related = item.relatedStories.filter((s) => s.publicId !== item.story?.publicId);
  
-@@ -331,22 +331,22 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -333,22 +333,22 @@ function ItemView({ item, followups }: Loaded) {
    // In the left rail (a flex column) it keeps its own height and width.
    const backButton = (
      <button type="button" onClick={back} className="-ml-1.5 inline-flex h-8 shrink-0 items-center gap-1.5 self-start rounded-full px-1.5 text-[13px] text-ink-3 transition-colors hover:text-ink touch:h-11">
@@ -6275,7 +6256,7 @@ index eaab21d..a1e0886 100644
                </MenuItem>
              ))}
          </>
-@@ -355,12 +355,12 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -357,12 +357,12 @@ function ItemView({ item, followups }: Loaded) {
    );
    // Phones: the same actions as a sheet from the bar (分享 and 原文 are on the toolbar).
    const phoneActions: ActionRow[] = [
@@ -6292,7 +6273,7 @@ index eaab21d..a1e0886 100644
        : []),
    ];
    const originalLink = (className: string) => (
-@@ -391,7 +391,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -393,7 +393,7 @@ function ItemView({ item, followups }: Loaded) {
    // Rails: the piece's facts on the left (wide screens), the editor's notes on the right, the outline
    // under the facts (or under the notes when only the right rail shows).
    const facts = (
@@ -6301,7 +6282,7 @@ index eaab21d..a1e0886 100644
        <div className="text-[14px] font-semibold leading-snug text-ink">{isX ? item.x!.authorName : item.source.name}</div>
        <div className="mt-1 text-[12.5px] leading-relaxed text-ink-3">
          {isX ? `@${item.x!.handle} · X` : item.author ?? hostOf(item.links.original)}
-@@ -414,10 +414,10 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -416,10 +416,10 @@ function ItemView({ item, followups }: Loaded) {
            <p className="text-[13.5px] leading-[1.8] text-ink-2">{item.reason}</p>
          </RailSection>
        ) : (
@@ -6314,7 +6295,7 @@ index eaab21d..a1e0886 100644
            <div className="flex flex-wrap gap-1.5">
              {item.topics.map((t) => (
                <Link viewTransition key={t.slug} to={`/topics/${t.slug}`} className="chip">
-@@ -428,7 +428,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -430,7 +430,7 @@ function ItemView({ item, followups }: Loaded) {
          </RailSection>
        )}
        {item.tags.length > 0 && (
@@ -6323,7 +6304,7 @@ index eaab21d..a1e0886 100644
            <div className="flex flex-wrap gap-1.5">
              {item.tags.slice(0, 8).map((t) => (
                <Link key={t} to={`/all?tag=${encodeURIComponent(t)}`} className="chip">
-@@ -447,10 +447,10 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -449,10 +449,10 @@ function ItemView({ item, followups }: Loaded) {
  
        {/* Phones: back to where the reader came from, the title once it has scrolled away, more actions. */}
        <PhoneBar
@@ -6336,7 +6317,7 @@ index eaab21d..a1e0886 100644
              <IconMore size={22} />
            </BarButton>
          }
-@@ -494,7 +494,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -496,7 +496,7 @@ function ItemView({ item, followups }: Loaded) {
              {isX && <span>· @{item.x!.handle} · X</span>}
              {item.author && !isX && <span>· {item.author}</span>}
              <span>·</span>
@@ -6345,7 +6326,7 @@ index eaab21d..a1e0886 100644
              <time dateTime={shownAt} className="mono">{fullDateTime(shownAt)}</time>
              <span suppressHydrationWarning>· {relativeTime(shownAt)}</span>
              {item.selected && (
-@@ -513,7 +513,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -515,7 +515,7 @@ function ItemView({ item, followups }: Loaded) {
  
            {item.summary && (!isX || item.summary.replace(/\s+/g, " ").trim() !== item.title) && (
              <section className={isX ? "mt-4" : "mt-7 xl:mt-8"}>
@@ -6354,7 +6335,7 @@ index eaab21d..a1e0886 100644
                <p className="text-[18px] leading-[1.7] text-ink xl:text-[20px] xl:leading-[1.7]">{item.summary}</p>
              </section>
            )}
-@@ -527,9 +527,9 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -529,9 +529,9 @@ function ItemView({ item, followups }: Loaded) {
  
            {item.sameEvent && (
              <p className="mt-5 text-[13px] leading-relaxed text-ink-4">
@@ -6366,7 +6347,7 @@ index eaab21d..a1e0886 100644
                </Link>
              </p>
            )}
-@@ -541,7 +541,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -543,7 +543,7 @@ function ItemView({ item, followups }: Loaded) {
              </div>
            )}
  
@@ -6375,7 +6356,7 @@ index eaab21d..a1e0886 100644
  
            {item.body && bodyHtml && (
              <section className="mt-9 border-t border-line pt-4 xl:mt-10">
-@@ -551,17 +551,17 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -553,17 +553,17 @@ function ItemView({ item, followups }: Loaded) {
                    <PillTabs
                      size="xs"
                      layoutId="item-body-lang"
@@ -6397,7 +6378,7 @@ index eaab21d..a1e0886 100644
                )}
                <ArticleBody html={bodyHtml} />
              </section>
-@@ -571,7 +571,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -573,7 +573,7 @@ function ItemView({ item, followups }: Loaded) {
            {isX && item.x!.quoted?.text && <QuotedPost quoted={item.x!.quoted} original={lang === "original"} />}
  
            <p className="mt-8 text-[13px] text-ink-4">
@@ -6406,7 +6387,7 @@ index eaab21d..a1e0886 100644
              <a href={item.links.original} target="_blank" rel="noopener noreferrer" className="text-ink-3 hover:text-accent">
                {isX ? item.x!.authorName : item.source.name}
              </a>
-@@ -597,7 +597,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -599,7 +599,7 @@ function ItemView({ item, followups }: Loaded) {
  
            {related.length > 0 && (
              <section className="mt-8">
@@ -6415,7 +6396,7 @@ index eaab21d..a1e0886 100644
                <ul className="divide-y divide-line-soft">
                  {related.map((s) => (
                    <li key={s.publicId}>
-@@ -615,7 +615,7 @@ function ItemView({ item }: { item: SiteItemDetail }) {
+@@ -617,7 +617,7 @@ function ItemView({ item, followups }: Loaded) {
        <ReaderToolbar
          item={item}
          originalUrl={item.links.original}
@@ -6581,9 +6562,18 @@ index d295fcb..a18daad 100644
    return [...pageMeta({
      title: reportTitle(r),
 diff --git a/apps/web/app/routes/report-latest.tsx b/apps/web/app/routes/report-latest.tsx
-index 03c0bd7..dc1dfe8 100644
+index 894b6b3..0b44243 100644
 --- a/apps/web/app/routes/report-latest.tsx
 +++ b/apps/web/app/routes/report-latest.tsx
+@@ -1,7 +1,7 @@
+ import { useLoaderData } from "react-router";
+ import type { Route } from "./+types/report-latest";
+ import { REPORT_NAMES, reportDateLabel, type ReportLatestPage } from "@aihot/contracts/site";
+-import { REPORTS, subjectAfter, withSubject } from "@aihot/site";
++import { REPORTS, withSubject } from "@aihot/site";
+ import { cachedPage, loadOr404 } from "../lib/api.server";
+ import { pageReuse } from "../lib/page-reuse";
+ import { pageMeta, reportLd } from "../lib/seo";
 @@ -12,7 +12,7 @@ import { ReportPaper, reportOutline } from "../features/report/ReportPaper";
  import { feedLink, kindFromPath } from "../features/report/format";
  import type { Screen } from "../components/shell/screens";
@@ -6593,7 +6583,16 @@ index 03c0bd7..dc1dfe8 100644
  export { pageHeaders as headers } from "../lib/api.server";
  export const { clientLoader, shouldRevalidate } = pageReuse<typeof loader>();
  
-@@ -40,7 +40,7 @@ export default function ReportLatestPage() {
+@@ -27,7 +27,7 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
+   const report = loaderData?.report;
+   // What this issue says, so a search result shows today's date and news rather than what the page is.
+   const lead = report?.lead?.leadParagraph ?? report?.overview?.slice(0, 150);
+-  const description = report && lead ? `${reportDateLabel(kind, report.key)} ${withSubject("资讯")}：${lead}` : `${REPORTS.descriptions[kind]}。`;
++  const description = report && lead ? `${reportDateLabel(kind, report.key)} ${withSubject("소식")}: ${lead}` : `${REPORTS.descriptions[kind]}.`;
+   return [...pageMeta({
+     title: withSubject(REPORT_NAMES[kind]),
+     description,
+@@ -42,7 +42,7 @@ export default function ReportLatestPage() {
    const { kind, report, index, today } = useLoaderData<typeof loader>();
    return (
      <ReportLayout kind={kind} index={index} current={report?.key ?? null} today={today} outline={report ? reportOutline(report) : []}>
@@ -7695,25 +7694,90 @@ index 34a8f9d..e7c7767 100644
  
  export function truncate(s: string, max: number, ellipsis = "…"): string {
 diff --git a/packages/backend/src/media/og.ts b/packages/backend/src/media/og.ts
-index 770b539..3e2991e 100644
+index 8adeb7f..50860b3 100644
 --- a/packages/backend/src/media/og.ts
 +++ b/packages/backend/src/media/og.ts
-@@ -29,9 +29,14 @@ function fonts() {
-   fontsPromise ??= Promise.all([
-     readFile(path.join(REPO_ROOT, "assets/og-fonts/noto-sans-sc-400.ttf")),
-     readFile(path.join(REPO_ROOT, "assets/og-fonts/noto-sans-sc-700.ttf")),
--  ]).then(([regular, bold]) => [
-+  ]).then(async ([regular, bold]) => [
-     { name: "Noto Sans SC", data: regular, weight: 400, style: "normal" },
-     { name: "Noto Sans SC", data: bold, weight: 700, style: "normal" },
+@@ -27,6 +27,7 @@ export interface OgCard {
+ let fontsPromise: Promise<Array<{ name: string; data: Buffer; weight: 400 | 700; style: "normal" }>> | null = null;
+ 
+ const FONT_DIR = path.join(REPO_ROOT, "assets/og-fonts");
++const FONT_FILES = readdirSync(FONT_DIR);
+ 
+ /**
+  * Fonts a site adds beside Noto Sans SC for the characters its subset lacks (traditional and Japanese
+@@ -38,18 +39,31 @@ export function fallbackFontFiles(files: string[]): string[] {
+ }
+ 
+ /** None by default: the share images and their cache keys are then what they were without this. */
+-export const FALLBACK_FONTS = fallbackFontFiles(readdirSync(FONT_DIR));
++export const FALLBACK_FONTS = fallbackFontFiles(FONT_FILES);
++/** HotBrief ko: l10n/apply.sh fetches Noto Sans KR as otf, which the ttf scan does not see. */
++const KO_OTF = FONT_FILES.filter((f) => /^noto-sans-kr-(400|700)\.otf$/.test(f)).sort();
++/** Posters share this key, so an image drawn before a font was added is drawn again. Empty when none are present. */
++export const ADDED_FONT_KEY = [...FALLBACK_FONTS, ...KO_OTF].join();
+ 
+ function fonts() {
+-  fontsPromise ??= Promise.all([
+-    readFile(path.join(FONT_DIR, "noto-sans-sc-400.ttf")),
+-    readFile(path.join(FONT_DIR, "noto-sans-sc-700.ttf")),
+-    ...FALLBACK_FONTS.map((f) => readFile(path.join(FONT_DIR, f))),
+-  ]).then(([regular, bold, ...more]) => [
+-    { name: "Noto Sans SC", data: regular!, weight: 400, style: "normal" },
+-    { name: "Noto Sans SC", data: bold!, weight: 700, style: "normal" },
+-    ...more.map((data, i) => ({ name: FALLBACK_FONTS[i]!.replace(/-(400|700)\.ttf$/, ""), data, weight: (FALLBACK_FONTS[i]!.endsWith("-700.ttf") ? 700 : 400) as 400 | 700, style: "normal" as const })),
+-  ]);
++  fontsPromise ??= (async () => {
++    const [regular, bold, ...more] = await Promise.all([
++      readFile(path.join(FONT_DIR, "noto-sans-sc-400.ttf")),
++      readFile(path.join(FONT_DIR, "noto-sans-sc-700.ttf")),
++      ...FALLBACK_FONTS.map((f) => readFile(path.join(FONT_DIR, f))),
++    ]);
 +    // HotBrief ko: Hangul glyphs (Noto Sans KR, fetched by l10n/apply.sh ko); satori falls back to them per glyph.
-+    ...(await Promise.all([400, 700].map(async (weight) => {
-+      const data = await readFile(path.join(REPO_ROOT, `assets/og-fonts/noto-sans-kr-${weight}.otf`)).catch(() => null);
-+      return data ? [{ name: "Noto Sans KR", data, weight: weight as 400 | 700, style: "normal" as const }] : [];
-+    }))).flat(),
-   ]);
++    const korean = (await Promise.all(KO_OTF.map(async (file) => {
++      const data = await readFile(path.join(FONT_DIR, file)).catch(() => null);
++      return data ? [{ name: "Noto Sans KR", data, weight: (file.endsWith("-700.otf") ? 700 : 400) as 400 | 700, style: "normal" as const }] : [];
++    }))).flat();
++    return [
++      { name: "Noto Sans SC", data: regular!, weight: 400 as const, style: "normal" as const },
++      { name: "Noto Sans SC", data: bold!, weight: 700 as const, style: "normal" as const },
++      ...more.map((data, i) => ({ name: FALLBACK_FONTS[i]!.replace(/-(400|700)\.ttf$/, ""), data, weight: (FALLBACK_FONTS[i]!.endsWith("-700.ttf") ? 700 : 400) as 400 | 700, style: "normal" as const })),
++      ...korean,
++    ];
++  })();
    return fontsPromise;
  }
+ 
+@@ -185,7 +199,7 @@ async function render(file: string, size: { width: number; height: number }, tre
+ 
+ export function ogEtag(card: OgCard): string {
+   // Added font names go into the key, so an image drawn before a font was added is drawn again; with none the key is unchanged.
+-  return createHash("sha256").update(OG_TEMPLATE_VERSION).update(FALLBACK_FONTS.join()).update(JSON.stringify(card)).digest("hex").slice(0, 24);
++  return createHash("sha256").update(OG_TEMPLATE_VERSION).update(ADDED_FONT_KEY).update(JSON.stringify(card)).digest("hex").slice(0, 24);
+ }
+ 
+ /** PNG bytes for a card, from the disk cache when this exact card was rendered before. */
+diff --git a/packages/backend/src/media/poster.ts b/packages/backend/src/media/poster.ts
+index dee54b6..57eb680 100644
+--- a/packages/backend/src/media/poster.ts
++++ b/packages/backend/src/media/poster.ts
+@@ -3,7 +3,7 @@
+ import { createHash } from "node:crypto";
+ import { renderSVG } from "uqr";
+ import { SITE } from "@aihot/site";
+-import { brandMark, clamp, FALLBACK_FONTS, h, nameMark, renderPng, SITE_HOST, type Node } from "./og.ts";
++import { ADDED_FONT_KEY, brandMark, clamp, h, nameMark, renderPng, SITE_HOST, type Node } from "./og.ts";
+ 
+ export const POSTER_TEMPLATE_VERSION = "poster-2026-09-29.1";
+ const WIDTH = 1080;
+@@ -76,7 +76,7 @@ async function tree(p: Poster): Promise<Node> {
+ }
+ 
+ export function posterEtag(p: Poster): string {
+-  return createHash("sha256").update(POSTER_TEMPLATE_VERSION).update(FALLBACK_FONTS.join()).update(JSON.stringify(p)).digest("hex").slice(0, 24);
++  return createHash("sha256").update(POSTER_TEMPLATE_VERSION).update(ADDED_FONT_KEY).update(JSON.stringify(p)).digest("hex").slice(0, 24);
+ }
+ 
+ /** PNG bytes for a poster, from the disk cache when this exact poster was rendered before. */
 diff --git a/packages/backend/src/notify/selected-content.ts b/packages/backend/src/notify/selected-content.ts
 index ffb7ff9..fde2782 100644
 --- a/packages/backend/src/notify/selected-content.ts
@@ -7737,10 +7801,10 @@ index ffb7ff9..fde2782 100644
      },
    };
 diff --git a/packages/backend/src/operations/alerts.ts b/packages/backend/src/operations/alerts.ts
-index ace8607..720b72a 100644
+index 555b402..5a36057 100644
 --- a/packages/backend/src/operations/alerts.ts
 +++ b/packages/backend/src/operations/alerts.ts
-@@ -311,6 +311,7 @@ const PROVIDERS: Record<string, { name: string; where: string; stops?: string }>
+@@ -320,6 +320,7 @@ const PROVIDERS: Record<string, { name: string; where: string; stops?: string }>
    dashscope: { name: "阿里云百炼", where: "阿里云百炼控制台" },
    deepseek: { name: "DeepSeek", where: "DeepSeek 开放平台" },
    mimo: { name: "小米 MiMo", where: "小米 MiMo 开放平台" },
@@ -8477,10 +8541,10 @@ index 0e45e3e..4ca73b6 100644
    };
  }
 diff --git a/packages/backend/src/publication/reports.ts b/packages/backend/src/publication/reports.ts
-index 14ac426..c5e629c 100644
+index 3dc54c2..aa49182 100644
 --- a/packages/backend/src/publication/reports.ts
 +++ b/packages/backend/src/publication/reports.ts
-@@ -169,13 +169,13 @@ function periodOverview(content: Record<string, any>, kind: "weekly" | "monthly"
+@@ -171,13 +171,13 @@ function periodOverview(content: Record<string, any>, kind: "weekly" | "monthly"
    if (!changed && typeof content.overview === "string" && content.overview) return content.overview;
    const shown = leadCandidates(content, "periodic").filter((e) => !e.itemId || !gone.has(String(e.itemId)));
    if (!shown.length) return null;
@@ -8496,7 +8560,7 @@ index 14ac426..c5e629c 100644
    return text && !issueName ? text : null;
  }
  
-@@ -360,8 +360,8 @@ export async function loadReport(kind: ReportKind, key: string): Promise<ReportD
+@@ -363,8 +363,8 @@ export async function loadReport(kind: ReportKind, key: string): Promise<ReportD
    const [{ prev, next }, picture] = await Promise.all([neighbors(kind, key), leadItem?.itemId && leadItem.available ? leadCover(leadItem.itemId) : null]);
    const cover = picture && leadItem ? { ...picture, caption: kind === "daily" || c.leadItemId ? null : leadItem.title } : null;
    const headline = kind === "daily" ? null : periodicHeadline(c);
@@ -8626,7 +8690,7 @@ index a134fcd..72727ce 100644
    if (!m) return undefined;
    return readPublicationDate(`${m[1]}/${m[2]}/${m[3]}`, utcOffset);
 diff --git a/packages/contracts/src/site.ts b/packages/contracts/src/site.ts
-index bf276a9..af3fb23 100644
+index cfc32af..d668eb7 100644
 --- a/packages/contracts/src/site.ts
 +++ b/packages/contracts/src/site.ts
 @@ -278,14 +278,14 @@ export interface StoryDetail {
