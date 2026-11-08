@@ -110,7 +110,7 @@ index 08083e8..1656670 100644
    const alibaba = { title: "Alibaba ships a new coding model", text: "Alibaba released a coding model with pricing details.", sourceKind: "rss" };
    assert.equal(enforceIdentity(alibaba, { titleZh: "阿里巴巴发布编程模型", summaryZh: "阿里巴巴发布了编程模型并公布价格。" }).identityGuard.outcome, "pass");
 diff --git a/tests/architecture.test.ts b/tests/architecture.test.ts
-index 7c195f0..81b33da 100644
+index e0f27b8..dd3da2d 100644
 --- a/tests/architecture.test.ts
 +++ b/tests/architecture.test.ts
 @@ -170,11 +170,15 @@ test("every environment variable the code reads is listed in a template, and eve
@@ -129,8 +129,8 @@ index 7c195f0..81b33da 100644
 -  "packages/backend/src/editorial/writing.ts": "a beijingDate written out, left to the next change of editorial/",
 +  // HotBrief en-US: writing.ts formats its date in the "UTC" Intl zone, the site clock, which converts nothing
    "site/changelog/FeatureRelease.tsx": "a changelog entry's Beijing date and time with its zone, to the minute, in dateTime",
-   "clients/decisions/decisions.mjs": "installed as one file away from the repository, so it cannot import time.ts",
    "clients/watchdog/watchdog.mjs": "installed as one file away from the repository, so it cannot import time.ts",
+   "clients/mp-watch/articles.ts": "installed away from the repository with only its module's contracts, so it cannot import time.ts",
 diff --git a/tests/category-corrections.test.ts b/tests/category-corrections.test.ts
 index 101b800..e65f53b 100644
 --- a/tests/category-corrections.test.ts
@@ -252,10 +252,10 @@ index 6e2802a..5889ce4 100644
    assert.ok(!result.sent.some(k => k.startsWith(key("2026-10-01"))));
  });
 diff --git a/tests/extraction-consistency.test.ts b/tests/extraction-consistency.test.ts
-index de4a4fe..63e1aca 100644
+index 7bc84f3..1fd4700 100644
 --- a/tests/extraction-consistency.test.ts
 +++ b/tests/extraction-consistency.test.ts
-@@ -121,8 +121,8 @@ test("an audited presentation refresh previews and applies only the reviewed lay
+@@ -149,8 +149,8 @@ test("an audited presentation refresh previews and applies only the reviewed lay
    presentationHtml = `<p>${body} The actual model price has changed.</p>`;
    const semantic = await rerun(articleId, "presentation", "preview-wording", "test", { preview: true });
    assert.ok(semantic && "ready" in semantic && !semantic.ready);
@@ -280,10 +280,10 @@ index d3d13fc..7ca7a6b 100644
    for (let i = 0; i < 20; i++) await submitFeedback(forged);
    await assert.rejects(submitFeedback(forged), e => e instanceof FeedbackRejected && e.status === 429);
 diff --git a/tests/feedback.test.ts b/tests/feedback.test.ts
-index 77797e2..5f23877 100644
+index e728c3e..8990db2 100644
 --- a/tests/feedback.test.ts
 +++ b/tests/feedback.test.ts
-@@ -203,7 +203,7 @@ test("the pool lists every idea, however many there are", async () => {
+@@ -273,7 +273,7 @@ test("the pool lists every idea, however many there are", async () => {
  test("an unknown kind, an idea outside a suggestion and a stale version are refused; reclassifying leaves the pool", async () => {
    const { id } = await ask("为什么模型榜上没有千问了", "198.51.100.21");
    await assert.rejects(handle(id, { kind: "praise" }), /unknown kind/);
@@ -336,10 +336,10 @@ index df9130b..f72ddf8 100644
    );
  });
 diff --git a/tests/page-metadata.standalone.test.ts b/tests/page-metadata.standalone.test.ts
-index 86885dd..6d3d817 100644
+index 882b86c..ab1dddf 100644
 --- a/tests/page-metadata.standalone.test.ts
 +++ b/tests/page-metadata.standalone.test.ts
-@@ -73,16 +73,16 @@ test("ordinary feed pages remain indexable and normalize ignored parameters", as
+@@ -82,16 +82,16 @@ test("ordinary feed pages remain indexable and normalize ignored parameters", as
      const $ = await page(requested!);
      assert.equal($("meta[name=robots]").attr("content"), undefined);
      assert.equal($("link[rel=canonical]").attr("href"), `${web.origin}${canonical}`);
@@ -351,7 +351,7 @@ index 86885dd..6d3d817 100644
  // Chinese readers search issues by the date as they write it ("10月4日 AI 新闻"), not by the key.
 -for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly", "周报", "9月28日—10月4日"], ["monthly", "月报", "2026年10月"]] as const) {
 +for (const [kind, label, date] of [["daily", "Daily", "Oct 4"], ["weekly", "Weekly", "Sep 28–Oct 4"], ["monthly", "Monthly", "October 2026"]] as const) {
-   test(`${kind} issue metadata describes its visible lead while the permanent entry keeps its title`, async () => {
+   test(`${kind} issue metadata describes its visible lead and the permanent entry names the latest issue's date`, async () => {
      const r = report(kind);
      const $ = await page(`/${kind}/${r.key}`);
 -    const title = `${withSubject(label)}｜${date}：${r.lead!.title}`;
@@ -359,7 +359,7 @@ index 86885dd..6d3d817 100644
      assert.equal($("title").text(), `${title} · ${SITE.name}`);
      assert.equal($("meta[property='og:title']").attr("content"), title);
      assert.ok($("main").text().includes(r.lead!.title));
-@@ -96,10 +96,10 @@ for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly",
+@@ -106,10 +106,10 @@ for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly",
  }
  
  test("an issue's date reads as Chinese readers write it, across months and years", () => {
@@ -596,10 +596,10 @@ index b810ea5..629579a 100644
  
  test("legacy JSON and RSS formats keep their source date and zone", () => {
 diff --git a/tests/sources.standalone.test.ts b/tests/sources.standalone.test.ts
-index 8a9b603..813f583 100644
+index 2924619..621a91e 100644
 --- a/tests/sources.standalone.test.ts
 +++ b/tests/sources.standalone.test.ts
-@@ -236,10 +236,11 @@ test("noise words match whatever their case", () => {
+@@ -239,10 +239,11 @@ test("noise words match whatever their case", () => {
  test("a time without a zone is read in the source's offset, in JSON lists and in detail page metadata", async () => {
    const list = async (extra: Record<string, unknown> = {}) => (await fetchJsonList({ id: "test-json", config: { url: `${site}/zoneless.json`, itemsPath: "result", titlePaths: ["title"], urlTemplate: "https://example.org/p/{id}", publishedAtPath: "publishDate", ...extra } } as never))
      .map((c) => c.publishedAt?.toISOString());
@@ -614,7 +614,7 @@ index 8a9b603..813f583 100644
  });
  
  test("posts embedded in a flight payload keep their own arrays and brackets inside strings", async () => {
-@@ -249,9 +250,9 @@ test("posts embedded in a flight payload keep their own arrays and brackets insi
+@@ -252,9 +253,9 @@ test("posts embedded in a flight payload keep their own arrays and brackets insi
  
  test("dates in yyyymmdd and in JSON-LD are read", async () => {
    const days = await fetchJsonList({ id: "test-json", config: { url: `${site}/days.json`, itemsPath: "data.list", titlePaths: ["ttl"], urlTemplate: "https://example.org/blog/view?seq={seq}", publishedAtPath: "day", publishedAtUnit: "yyyymmdd" } } as never);

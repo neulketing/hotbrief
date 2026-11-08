@@ -289,10 +289,10 @@ index 18ace92..388334b 100644
    return (
      <button
 diff --git a/apps/web/app/components/shell/Sidebar.tsx b/apps/web/app/components/shell/Sidebar.tsx
-index 9e77065..695d8e8 100644
+index d326392..001bc98 100644
 --- a/apps/web/app/components/shell/Sidebar.tsx
 +++ b/apps/web/app/components/shell/Sidebar.tsx
-@@ -35,7 +35,7 @@ function SideLink({ item, dot }: { item: NavItem; dot: boolean }) {
+@@ -33,7 +33,7 @@ function SideLink({ item, dot, active }: { item: NavItem; dot: boolean; active:
          <Icon size={17} />
        </span>
        <span className="min-w-0 truncate">{item.label}</span>
@@ -301,7 +301,16 @@ index 9e77065..695d8e8 100644
      </IntentLink>
    );
  }
-@@ -87,10 +87,10 @@ export function Sidebar({ changelogVersion }: { changelogVersion: string | null
+@@ -51,7 +51,7 @@ function Rail({ dot }: { dot: boolean }) {
+       <Link to="/" className="mb-3 flex size-11 shrink-0 items-center justify-center text-accent short:mb-1" aria-label={`${SITE.name} 首页`}>
+         <RingMark className="size-7" />
+       </Link>
+-      <nav className="flex w-full flex-col gap-1" aria-label="主导航">
++      <nav className="flex w-full flex-col gap-1" aria-label="주 메뉴">
+         {rail().map((t) => {
+           const on = railIsActive(t, pathname, tab ?? home);
+           const Icon = t.icon;
+@@ -86,10 +86,10 @@ export function Sidebar({ changelogVersion }: { changelogVersion: string | null
      <>
        <Rail dot={dot} />
        <aside className="scrollbar-thin sticky top-0 hidden h-dvh w-[180px] shrink-0 flex-col border-r border-line bg-sidebar px-3 pb-[max(14px,env(safe-area-inset-bottom))] pt-6 wide:flex short:overflow-y-auto">
@@ -311,9 +320,18 @@ index 9e77065..695d8e8 100644
          </Link>
 -        <nav className="scrollbar-thin -mx-1 flex-1 overflow-y-auto px-1 short:flex-none short:overflow-visible" aria-label="主导航">
 +        <nav className="scrollbar-thin -mx-1 flex-1 overflow-y-auto px-1 short:flex-none short:overflow-visible" aria-label="주 메뉴">
-           {sidebar().map((section) => (
-             <div key={section.title}>
-               <div className="px-2.5 pb-1 pt-3.5 text-[11px] text-ink-4">{section.title}</div>
+           {sidebar().map((section) => {
+             // Only the most specific entry of a section is lit, so a detail page does not light the list above it too.
+             const lit = activeSidebarItem(section.items, pathname);
+@@ -122,7 +122,7 @@ export function Sidebar({ changelogVersion }: { changelogVersion: string | null
+           <div className="-mx-1 flex flex-col items-center gap-1.5">
+             {SITE.poweredBy && (
+               <a href={SITE.poweredBy.url} target="_blank" rel="noopener" className="whitespace-nowrap text-[9.5px] leading-[1.3] text-ink-4 hover:text-ink-3">
+-                由 {SITE.poweredBy.name} 驱动
++                {SITE.poweredBy.name} 기반
+               </a>
+             )}
+             <Filings className="whitespace-nowrap text-[9.5px] leading-[1.3] text-ink-4 hover:text-ink-3" badgeSize={10} />
 diff --git a/apps/web/app/components/shell/TabBar.tsx b/apps/web/app/components/shell/TabBar.tsx
 index b09b2c0..d43bff7 100644
 --- a/apps/web/app/components/shell/TabBar.tsx
@@ -363,10 +381,10 @@ index 0e5fb3b..04025f5 100644
          aria-hidden="true"
          className="absolute inset-y-[3px] left-[3px] w-[calc((100%-6px)/3)] rounded-full border border-line bg-surface shadow-[var(--shadow-card)] transition-transform duration-200 ease-[var(--ease-out-quart)]"
 diff --git a/apps/web/app/components/shell/nav.ts b/apps/web/app/components/shell/nav.ts
-index 99032bd..d154024 100644
+index 1f4201a..cf6685f 100644
 --- a/apps/web/app/components/shell/nav.ts
 +++ b/apps/web/app/components/shell/nav.ts
-@@ -19,23 +19,23 @@ export interface NavItem {
+@@ -21,23 +21,23 @@ export interface NavItem {
  
  const SECTIONS: Array<{ title: string; items: NavItem[] }> = [
    {
@@ -376,13 +394,13 @@ index 99032bd..d154024 100644
 -      { to: "/", label: "精选", icon: IconBolt, end: true },
 -      { to: "/all", label: subjectAfter("全部", "动态"), icon: IconList },
 -      { to: "/hot", label: "热点榜", icon: IconFlame },
--      { to: "/daily", label: withSubject("日报"), icon: IconDoc },
+-      { to: "/daily", label: withSubject("日报"), icon: IconDoc, covers: ["/weekly", "/monthly"] },
 -      { to: "/topics", label: "主题", icon: IconGrid },
 -      { to: "/starred", label: "收藏", icon: IconBookmark },
 +      { to: "/", label: "추천", icon: IconBolt, end: true },
 +      { to: "/all", label: "전체 소식", icon: IconList },
 +      { to: "/hot", label: "핫이슈", icon: IconFlame },
-+      { to: "/daily", label: withSubject("브리핑"), icon: IconDoc },
++      { to: "/daily", label: withSubject("브리핑"), icon: IconDoc, covers: ["/weekly", "/monthly"] },
 +      { to: "/topics", label: "주제", icon: IconGrid },
 +      { to: "/starred", label: "저장한 글", icon: IconBookmark },
      ],
@@ -402,7 +420,7 @@ index 99032bd..d154024 100644
      ],
    },
  ];
-@@ -44,8 +44,8 @@ const SECTIONS: Array<{ title: string; items: NavItem[] }> = [
+@@ -46,8 +46,8 @@ const SECTIONS: Array<{ title: string; items: NavItem[] }> = [
  export const inNav = (to: string) => !(NAV.hidden as readonly string[]).includes(to);
  
  const UP = {
@@ -413,7 +431,7 @@ index 99032bd..d154024 100644
  } as const;
  
  /**
-@@ -54,7 +54,7 @@ const UP = {
+@@ -56,7 +56,7 @@ const UP = {
   * phone tab it sits under, `crumbs` its breadcrumb after the site's home.
   */
  export function navUp(entry: keyof typeof UP): { to: string; name: string; back: string; tab: TabKey; crumbs: Array<{ name: string; path: string }> } {
@@ -422,17 +440,17 @@ index 99032bd..d154024 100644
    return { to: entry, ...UP[entry], crumbs: [{ name: UP[entry].name, path: entry }] };
  }
  
-@@ -104,10 +104,10 @@ export interface Tab {
+@@ -119,10 +119,10 @@ export interface Tab {
  }
  
  const ENGINE_TABS: Tab[] = [
 -  { key: "featured", to: "/", label: "精选", icon: IconBolt },
 -  { key: "hot", to: "/hot", label: "热点", icon: IconFlame },
--  { key: "daily", to: "/daily", label: "日报", icon: IconDoc },
+-  { key: "daily", to: "/daily", label: "日报", icon: IconDoc, covers: ["/weekly", "/monthly"] },
 -  { key: "me", to: "/more", label: "我的", icon: IconUser, changelog: true },
 +  { key: "featured", to: "/", label: "추천", icon: IconBolt },
 +  { key: "hot", to: "/hot", label: "핫이슈", icon: IconFlame },
-+  { key: "daily", to: "/daily", label: "브리핑", icon: IconDoc },
++  { key: "daily", to: "/daily", label: "브리핑", icon: IconDoc, covers: ["/weekly", "/monthly"] },
 +  { key: "me", to: "/more", label: "MY", icon: IconUser, changelog: true },
  ];
  
@@ -2558,10 +2576,10 @@ index d90a8ad..3113807 100644
    const start = md.search(firstSection);
    return { title, meta, intro, body: start >= 0 ? md.slice(start) : md };
 diff --git a/apps/web/app/lib/seo.ts b/apps/web/app/lib/seo.ts
-index edd2b8d..6b66a9a 100644
+index 939a133..9a6beec 100644
 --- a/apps/web/app/lib/seo.ts
 +++ b/apps/web/app/lib/seo.ts
-@@ -155,8 +155,8 @@ export function siteLd() {
+@@ -158,8 +158,8 @@ export function siteLd() {
        "@context": "https://schema.org",
        "@type": "Dataset",
        "@id": `${base}/#dataset`,
@@ -2572,7 +2590,7 @@ index edd2b8d..6b66a9a 100644
        url: base,
        inLanguage: SITE.locale,
        isAccessibleForFree: true,
-@@ -165,12 +165,12 @@ export function siteLd() {
+@@ -168,12 +168,12 @@ export function siteLd() {
        creator: orgRef(),
        publisher: orgRef(),
        distribution: [
@@ -2591,7 +2609,7 @@ index edd2b8d..6b66a9a 100644
          { "@type": "DataDownload", name: "OpenAPI", encodingFormat: "application/json", contentUrl: `${base}/openapi-v1.json` },
        ],
      },
-@@ -236,8 +236,8 @@ export function archiveLd(path: string, name: string, entries: Array<{ path: str
+@@ -239,8 +239,8 @@ export function archiveLd(path: string, name: string, entries: Array<{ path: str
  /** An issue's Chinese date and actual editorial lead, falling back only to a still-public visible highlight. */
  export function reportTitle(report: ReportDetail): string {
    const lead = report.lead?.title.trim() || report.highlights.find((item) => item.available)?.title.trim();
@@ -2602,7 +2620,7 @@ index edd2b8d..6b66a9a 100644
  }
  
  /** One report issue: an editorial round-up by the site (no personal byline), sections as its sections. */
-@@ -273,7 +273,7 @@ export function storyLd(story: StoryDetail) {
+@@ -276,7 +276,7 @@ export function storyLd(story: StoryDetail) {
      ...(reports.length ? {
        mainEntity: {
          "@type": "ItemList",
@@ -2668,15 +2686,15 @@ index 922b01f..9411dbc 100644
          </div>
        </div>
 diff --git a/apps/web/app/routes/about.tsx b/apps/web/app/routes/about.tsx
-index ba66046..aa8325a 100644
+index 24642c5..852a556 100644
 --- a/apps/web/app/routes/about.tsx
 +++ b/apps/web/app/routes/about.tsx
 @@ -2,7 +2,7 @@ import { Fragment, useCallback, useMemo, useRef, useState, type ReactNode } from
  import { IntentLink } from "../components/ui/IntentLink";
  import { Link, useLoaderData } from "react-router";
  import type { SiteContact, SiteStats } from "@aihot/contracts/site";
--import { ABOUT, POLICY, REPORTS, SITE, subjectAfter } from "@aihot/site";
-+import { ABOUT, POLICY, REPORTS, SITE, withSubject } from "@aihot/site";
+-import { ABOUT, POLICY, REPORTS, SEO_TITLES, SITE, subjectAfter } from "@aihot/site";
++import { ABOUT, POLICY, REPORTS, SEO_TITLES, SITE, withSubject } from "@aihot/site";
  import { apiGet, cachedPage } from "../lib/api.server";
  import { pageReuse } from "../lib/page-reuse";
  import { organizationLd, pageMeta } from "../lib/seo";
@@ -2689,15 +2707,7 @@ index ba66046..aa8325a 100644
  export { pageHeaders as headers } from "../lib/api.server";
  export const { clientLoader, shouldRevalidate } = pageReuse<typeof loader>();
  
-@@ -26,14 +26,14 @@ export async function loader({ request }: { request: Request }) {
- }
- 
- export function meta() {
--  return pageMeta({ title: "关于", description: ABOUT.description, path: "/about", image: "/og/pages/about.png", jsonLd: organizationLd() });
-+  return pageMeta({ title: "소개", description: ABOUT.description, path: "/about", image: "/og/pages/about.png", jsonLd: organizationLd() });
- }
- 
- const NO_SOURCES: RiverSource[] = [];
+@@ -33,7 +33,7 @@ const NO_SOURCES: RiverSource[] = [];
  
  /** 3.6 万 from ten thousand up, digits with separators below. */
  function figure(n: number): { value: string; unit: string } {
@@ -3839,7 +3849,7 @@ index f2a4d1c..1032793 100644
            <nav className="no-scrollbar flex gap-1 overflow-x-auto px-3 py-2">
              {flat.map((i) => {
 diff --git a/apps/web/app/routes/admin/models.tsx b/apps/web/app/routes/admin/models.tsx
-index 6094662..8cf91e3 100644
+index 1a3da53..25e9365 100644
 --- a/apps/web/app/routes/admin/models.tsx
 +++ b/apps/web/app/routes/admin/models.tsx
 @@ -15,13 +15,13 @@ export async function loader({ request }: Route.LoaderArgs) {
@@ -3872,9 +3882,12 @@ index 6094662..8cf91e3 100644
      >
        <div className="grid grid-cols-1 gap-5">
          {m.capabilities.map((c) => {
-@@ -49,10 +49,10 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
+@@ -48,12 +48,12 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
+                   {c.label}
                    <span className="font-mono text-[12px] font-normal text-ink-3 [overflow-wrap:anywhere]">{c.current.model}</span>
                    <Badge tone={c.current.source === "admin" ? "accent" : "muted"}>{SOURCE_LABEL[c.current.source]}</Badge>
+-                  {c.current.invalid && <Badge tone="bad">配置的 {c.current.invalid} 不存在，未生效</Badge>}
++                  {c.current.invalid && <Badge tone="bad">설정한 {c.current.invalid} 모델이 없어 적용되지 않음</Badge>}
                    {c.fallback && <span className="text-xs font-normal text-ink-3">
 -                    备用 {c.fallback.model} · {c.fallback.primaryPaused
 -                      ? c.fallback.backupPaused ? "主备均暂停，等待恢复" : "正在接续"
@@ -3887,7 +3900,7 @@ index 6094662..8cf91e3 100644
                    </span>}
                  </span>
                }
-@@ -64,7 +64,7 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
+@@ -65,7 +65,7 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
                      setChoice(c.current.model);
                    }}
                  >
@@ -3896,7 +3909,7 @@ index 6094662..8cf91e3 100644
                  </Button>
                }
                pad={false}
-@@ -75,30 +75,30 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
+@@ -76,30 +76,30 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
                    rows={c.usage}
                    rowKey={(u) => `${u.purpose}|${u.model}|${u.promptVersion}`}
                    columns={[
@@ -3937,7 +3950,7 @@ index 6094662..8cf91e3 100644
                          ) : (
                            <Unpriced />
                          ),
-@@ -106,7 +106,7 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
+@@ -107,7 +107,7 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
                    ]}
                  />
                ) : (
@@ -3946,7 +3959,7 @@ index 6094662..8cf91e3 100644
                )}
              </Card>
            );
-@@ -114,55 +114,55 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
+@@ -115,55 +115,55 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
        </div>
  
        <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
@@ -4020,7 +4033,7 @@ index 6094662..8cf91e3 100644
            <Select value={choice} onChange={(e) => setChoice(e.target.value)}>
              {m.choices
                .filter((x) => !target?.vision || x.vision)
-@@ -171,7 +171,7 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
+@@ -172,7 +172,7 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
                    {x.key}（{x.service}）
                  </option>
                ))}
@@ -5274,7 +5287,7 @@ index aa07c46..0d8dafb 100644
          />
        </Card>
 diff --git a/apps/web/app/routes/agent.tsx b/apps/web/app/routes/agent.tsx
-index 9563602..39d2159 100644
+index 597f8bc..979f21d 100644
 --- a/apps/web/app/routes/agent.tsx
 +++ b/apps/web/app/routes/agent.tsx
 @@ -16,7 +16,7 @@ import type { AgentTrack } from "../modules";
@@ -5319,13 +5332,11 @@ index 9563602..39d2159 100644
    ...AGENT_PARTS.flatMap((p) => p.resources ?? []),
  ];
  
-@@ -77,8 +77,8 @@ export function meta({ location }: Route.MetaArgs) {
-   const tab = tabKey(new URLSearchParams(location.search).get('tab'));
+@@ -78,7 +78,7 @@ export function meta({ location }: Route.MetaArgs) {
    const path = listPath("/agent", { tab: tab !== FIRST ? tab : null });
    return pageMeta({
--    title: "Agent 接入",
+     title: SEO_TITLES.agent,
 -    description: `把 ${SITE.name} 接进你的 Agent：${TRACKS.map((t) => t.name).join("、")} ${WAYS}种方式，匿名只读，无需 API Key，一分钟接好。`,
-+    title: "에이전트 연동",
 +    description: `${SITE.name}를 에이전트에 연결하세요. ${TRACKS.map((t) => t.name).join(", ")} 등 ${WAYS}가지 방법, 익명 읽기 전용, API Key 없이 1분이면 됩니다.`,
      path,
      image: "/og/pages/agent.png",
@@ -5401,7 +5412,7 @@ index 9563602..39d2159 100644
            const on = t.key === tab;
            return (
 diff --git a/apps/web/app/routes/all.tsx b/apps/web/app/routes/all.tsx
-index a37ad5b..4b9e859 100644
+index ece00a4..9854704 100644
 --- a/apps/web/app/routes/all.tsx
 +++ b/apps/web/app/routes/all.tsx
 @@ -17,11 +17,11 @@ import { isPhone, type Screen } from "../components/shell/screens";
@@ -5418,13 +5429,12 @@ index a37ad5b..4b9e859 100644
  
  export async function loader({ request }: Route.LoaderArgs) {
    const url = new URL(request.url);
-@@ -44,11 +44,11 @@ export function meta({ loaderData }: Route.MetaArgs) {
-   const q = f?.q;
+@@ -45,10 +45,10 @@ export function meta({ loaderData }: Route.MetaArgs) {
    const page = loaderData?.data.page ?? 1;
    const path = listPath("/all", { ...(f && filterParams(f)), q, tab: q && f?.tab === "relevance" ? "relevance" : null, page: page > 1 ? page : null });
--  const title = `${q ? `搜索：${q}` : ALL_TITLE}${page > 1 ? ` · 第 ${page} 页` : ""}`;
-+  const title = `${q ? `검색: ${q}` : ALL_TITLE}${page > 1 ? ` · ${page}쪽` : ""}`;
    const noindex = !!q || hasFeedFilters(f);
+-  const title = `${q ? `搜索：${q}` : noindex ? ALL_TITLE : SEO_TITLES.all}${page > 1 ? ` · 第 ${page} 页` : ""}`;
++  const title = `${q ? `검색: ${q}` : noindex ? ALL_TITLE : SEO_TITLES.all}${page > 1 ? ` · ${page}쪽` : ""}`;
    return pageMeta({
      title,
 -    description: `${SITE.name} 收录的${subjectAfter("全部", "相关动态")}，可按频道、类别与标签筛选，支持中英文搜索。`,
@@ -5841,10 +5851,10 @@ index a838c61..57b0930 100644
          </div>
        </form>
 diff --git a/apps/web/app/routes/home.tsx b/apps/web/app/routes/home.tsx
-index 7f6d074..a41105c 100644
+index bca8491..ce4e964 100644
 --- a/apps/web/app/routes/home.tsx
 +++ b/apps/web/app/routes/home.tsx
-@@ -10,7 +10,7 @@ import { Timeline } from "../features/feed/Timeline";
+@@ -11,7 +11,7 @@ import { Timeline } from "../features/feed/Timeline";
  import { HotTopics } from "../features/feed/HotTopics";
  import { ActiveFilters, CategoryTabs, FeedBar, SearchField } from "../features/feed/Filters";
  
@@ -5853,13 +5863,16 @@ index 7f6d074..a41105c 100644
  export { pageHeaders as headers } from "../lib/api.server";
  export const { clientLoader, shouldRevalidate } = pageReuse<typeof loader>();
  
-@@ -29,12 +29,12 @@ export async function loader({ request }: Route.LoaderArgs) {
+@@ -30,7 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
  export function meta({ loaderData }: Route.MetaArgs) {
    const path = listPath("/", loaderData ? filterParams(loaderData.filters) : {});
    const titles = loaderData?.data.cards.map((c) => c.item.title) ?? [];
--  return pageMeta({ path, noindex: hasFeedFilters(loaderData?.filters), jsonLd: path === "/" ? [...siteLd(), itemListLd("/", "精选", titles)] : undefined });
-+  return pageMeta({ path, noindex: hasFeedFilters(loaderData?.filters), jsonLd: path === "/" ? [...siteLd(), itemListLd("/", "추천", titles)] : undefined });
- }
+-  const tags = pageMeta({ path, noindex: hasFeedFilters(loaderData?.filters), jsonLd: path === "/" ? [...siteLd(), itemListLd("/", "精选", titles)] : undefined });
++  const tags = pageMeta({ path, noindex: hasFeedFilters(loaderData?.filters), jsonLd: path === "/" ? [...siteLd(), itemListLd("/", "추천", titles)] : undefined });
+   // Webmaster platforms look for their verification tag on the home page only.
+   if (path !== "/") return tags;
+   return [...tags, ...Object.entries(SITE.siteVerification).map(([name, content]) => ({ name, content }))];
+@@ -38,7 +38,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
  
  export default function Home() {
    const { data, filters } = useLoaderData<typeof loader>();
@@ -5869,19 +5882,19 @@ index 7f6d074..a41105c 100644
      <div className="pb-6">
        {/* Phones: the bar (精选 | 全部, filter, search), the filter in use, today's hot topics, the feed. */}
 diff --git a/apps/web/app/routes/hot.tsx b/apps/web/app/routes/hot.tsx
-index 6251747..0fcb22a 100644
+index 74ccc38..4db1b9f 100644
 --- a/apps/web/app/routes/hot.tsx
 +++ b/apps/web/app/routes/hot.tsx
-@@ -1,7 +1,7 @@
- import { useLoaderData } from "react-router";
+@@ -3,7 +3,7 @@ import type { Route } from "./+types/hot";
  import { IntentLink } from "../components/ui/IntentLink";
  import type { HotEntryView, HotResponse } from "@aihot/contracts/site";
--import { subjectAfter, withSubject } from "@aihot/site";
-+import { SITE, withSubject } from "@aihot/site";
+ import { beijingDate } from "@aihot/contracts/time";
+-import { SEO_TITLES, subjectAfter, withSubject } from "@aihot/site";
++import { SEO_TITLES, SITE, withSubject } from "@aihot/site";
  import { cachedPage, loadOr404 } from "../lib/api.server";
  import { pageReuse } from "../lib/page-reuse";
- import { pageMeta } from "../lib/seo";
-@@ -18,7 +18,7 @@ import { navUp } from "../components/shell/nav";
+ import { archiveLd, pageMeta } from "../lib/seo";
+@@ -20,7 +20,7 @@ import { navUp } from "../components/shell/nav";
  import { scrollBehavior } from "../lib/motion";
  import type { Screen } from "../components/shell/screens";
  
@@ -5890,17 +5903,21 @@ index 6251747..0fcb22a 100644
  export { pageHeaders as headers } from "../lib/api.server";
  export const { clientLoader, shouldRevalidate } = pageReuse<typeof loader>();
  
-@@ -28,17 +28,17 @@ export async function loader({ request }: { request: Request }) {
- 
- export function meta() {
+@@ -33,11 +33,11 @@ export function meta({ loaderData }: Route.MetaArgs) {
+   const entries = hot?.entries ?? [];
+   // A search result answers "what is hot today" with the three events the page leads with, dated by the ranking.
+   const lead = hot?.computedAt && entries.length
+-    ? `${subjectAfter(monthDay(beijingDate(hot.computedAt)), "热点")}：${entries.slice(0, 3).map((e) => e.story.title).join("；")}。`
++    ? `${monthDay(beijingDate(hot.computedAt))} ${withSubject("핫이슈")}: ${entries.slice(0, 3).map((e) => e.story.title).join("; ")}. `
+     : "";
    return pageMeta({
--    title: withSubject("热点榜"),
--    description: `${subjectAfter("过去 48 小时", "圈")}讨论最多的 10 个事件：热度、走势，以及都有谁在报道。`,
-+    title: withSubject("핫이슈"),
-+    description: `지난 48시간 ${SITE.subject} 업계에서 가장 많이 논의된 이슈 10개. 열기, 추이, 그리고 누가 보도하고 있는지.`,
+     title: SEO_TITLES.hot,
+-    description: `${lead}${subjectAfter("过去 48 小时", "圈")}讨论最多的 10 个事件：热度、走势，以及都有谁在报道。`,
++    description: `${lead}지난 48시간 ${SITE.subject} 업계에서 가장 많이 논의된 이슈 10개. 열기, 추이, 그리고 누가 보도하고 있는지.`,
      path: "/hot",
      image: "/og/pages/hot.png",
-   });
+     jsonLd: entries.length ? archiveLd("/hot", SEO_TITLES.hot, entries.map((e) => ({ path: `/story/${e.story.publicId}`, name: e.story.title }))) : undefined,
+@@ -45,9 +45,9 @@ export function meta({ loaderData }: Route.MetaArgs) {
  }
  
  const BADGES: Record<HotEntryView["badges"][number], { label: string; tone: "hot" | "accent" | "amber"; hint: string }> = {
@@ -5913,7 +5930,7 @@ index 6251747..0fcb22a 100644
  };
  
  const RANK_COLOR = ["text-rank-1", "text-rank-2", "text-rank-3"];
-@@ -53,11 +53,11 @@ function Voices({ e }: { e: HotEntryView }) {
+@@ -62,11 +62,11 @@ function Voices({ e }: { e: HotEntryView }) {
        {/* Lines break between the phrases, never inside one. */}
        <span className="whitespace-nowrap">
          {names.length > 0 && <span className="text-ink-3">{names.join("、")}</span>}
@@ -5927,7 +5944,7 @@ index 6251747..0fcb22a 100644
        </span>
      </span>
    );
-@@ -91,16 +91,16 @@ function HeatPanel({ e }: { e: HotEntryView }) {
+@@ -100,16 +100,16 @@ function HeatPanel({ e }: { e: HotEntryView }) {
    return (
      <div className="order-first flex aspect-[2/1] flex-col rounded-panel bg-accent-softer p-4 ring-1 ring-inset ring-line-soft xl:order-none xl:aspect-[16/10] dark:bg-accent-soft">
        <div className="flex items-baseline justify-between text-[11.5px] text-ink-4">
@@ -5949,7 +5966,7 @@ index 6251747..0fcb22a 100644
        </div>
      </div>
    );
-@@ -137,7 +137,7 @@ function Lead({ e }: { e: HotEntryView }) {
+@@ -146,7 +146,7 @@ function Lead({ e }: { e: HotEntryView }) {
          <div className="min-w-0 flex-[1_1_18rem] space-y-2.5">
            {e.latest && (
              <p className="line-clamp-2 text-[13px] leading-[1.7] text-ink-2">
@@ -5958,7 +5975,7 @@ index 6251747..0fcb22a 100644
                {e.latest}
              </p>
            )}
-@@ -151,7 +151,7 @@ function Lead({ e }: { e: HotEntryView }) {
+@@ -160,7 +160,7 @@ function Lead({ e }: { e: HotEntryView }) {
            {!panel && <Sparkline values={e.spark} className="h-10 w-[140px]" />}
            <div className="text-right">
              <div className="mono text-[34px] font-semibold leading-none tracking-[-0.03em] text-ink">{Math.round(e.heat)}</div>
@@ -5967,7 +5984,7 @@ index 6251747..0fcb22a 100644
            </div>
          </div>
        </div>
-@@ -176,8 +176,8 @@ function Runner({ e }: { e: HotEntryView }) {
+@@ -185,8 +185,8 @@ function Runner({ e }: { e: HotEntryView }) {
          <div className="flex min-w-0 flex-col gap-1.5">
            <Faces participants={e.participants} total={e.participantCount} size={20} />
            <span className="text-[12px] text-ink-4">
@@ -5978,7 +5995,7 @@ index 6251747..0fcb22a 100644
            </span>
          </div>
          <div className="ml-auto flex items-end gap-3">
-@@ -193,7 +193,7 @@ function Runner({ e }: { e: HotEntryView }) {
+@@ -202,7 +202,7 @@ function Runner({ e }: { e: HotEntryView }) {
  function Row({ e }: { e: HotEntryView }) {
    return (
      <li className="group relative grid grid-cols-[30px_minmax(0,1fr)] items-start gap-x-3 px-4 py-3 transition-colors hover:bg-bg-sunk/70 sm:px-5 wide:grid-cols-[44px_minmax(0,1fr)_auto_104px_76px] wide:items-center wide:gap-x-6 wide:px-6 wide:py-3.5 dark:hover:bg-bg-muted/40">
@@ -5987,7 +6004,7 @@ index 6251747..0fcb22a 100644
          {pad(e.rank)}
        </span>
        <div className="min-w-0">
-@@ -209,7 +209,7 @@ function Row({ e }: { e: HotEntryView }) {
+@@ -218,7 +218,7 @@ function Row({ e }: { e: HotEntryView }) {
          <div className="mt-2 flex items-center gap-2.5 wide:hidden">
            <Faces participants={e.participants} total={e.participantCount} size={20} />
            <span className="text-[12px] text-ink-4">
@@ -5996,7 +6013,7 @@ index 6251747..0fcb22a 100644
            </span>
            <span className="ml-auto flex items-center gap-2">
              <span className="mono text-[17px] font-semibold leading-none text-ink">{Math.round(e.heat)}</span>
-@@ -245,22 +245,22 @@ export default function HotPage() {
+@@ -254,22 +254,22 @@ export default function HotPage() {
    return (
      <div className="pb-10">
        <PhoneBar
@@ -6023,7 +6040,7 @@ index 6251747..0fcb22a 100644
            </button>
          }
        />
-@@ -271,25 +271,25 @@ export default function HotPage() {
+@@ -280,25 +280,25 @@ export default function HotPage() {
                <span className="absolute inline-flex size-full animate-ping rounded-full bg-hot opacity-30" />
                <span className="relative inline-flex size-2 rounded-full bg-hot" />
              </span>
@@ -6055,7 +6072,7 @@ index 6251747..0fcb22a 100644
              <div className="grid grid-cols-1 lg:col-span-7 lg:row-span-2 xl:col-span-8">
                <Lead e={lead} />
              </div>
-@@ -301,12 +301,12 @@ export default function HotPage() {
+@@ -310,12 +310,12 @@ export default function HotPage() {
            </section>
  
            {others.length > 0 && (
@@ -6071,7 +6088,7 @@ index 6251747..0fcb22a 100644
                </div>
                <ol className="card divide-y divide-line-soft overflow-hidden">
                  {others.map((e) => (
-@@ -321,18 +321,18 @@ export default function HotPage() {
+@@ -330,18 +330,18 @@ export default function HotPage() {
        <details id="hot-method" className="disclosure group/method mt-8 scroll-mt-[calc(var(--bar-h)+16px)] text-[12px] text-ink-4">
          <summary className="flex items-center gap-1.5 py-1 transition-colors hover:text-ink-2">
            <IconInfo size={15} />
@@ -6097,7 +6114,7 @@ index 6251747..0fcb22a 100644
            <dl className="flex flex-wrap gap-x-5 gap-y-1.5 pt-1">
              {Object.values(BADGES).map((b) => (
 diff --git a/apps/web/app/routes/item.tsx b/apps/web/app/routes/item.tsx
-index d0e2b7b..1a98186 100644
+index ab9d145..3e7ac2c 100644
 --- a/apps/web/app/routes/item.tsx
 +++ b/apps/web/app/routes/item.tsx
 @@ -57,7 +57,7 @@ export async function clientLoader(args: ClientLoaderFunctionArgs) {
@@ -6109,7 +6126,7 @@ index d0e2b7b..1a98186 100644
    const { item } = loaderData;
    if (!item) return [{ title: titled(loaderData.preview.title) }];
    return pageMeta({
-@@ -71,7 +71,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
+@@ -72,7 +72,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
        articleLd({ path: `/items/${item.id}`, headline: item.title, description: item.summary, publishedAt: item.publishedAt, image: `/og/items/${item.id}.png`, basedOn: item.links.original }),
        breadcrumbLd([
          { name: SITE.name, path: "/" },
@@ -6118,7 +6135,7 @@ index d0e2b7b..1a98186 100644
          { name: item.title, path: `/items/${item.id}` },
        ]),
      ],
-@@ -126,8 +126,8 @@ function ArticleOutline({ outline }: { outline: SiteItemDetail["outline"] }) {
+@@ -127,8 +127,8 @@ function ArticleOutline({ outline }: { outline: SiteItemDetail["outline"] }) {
      if ((up && nav.scrollTop <= 0) || (down && nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 1)) e.preventDefault();
    };
    return (
@@ -6129,7 +6146,7 @@ index d0e2b7b..1a98186 100644
          <ol className="space-y-0.5 border-l border-line">
            {outline.map((o) => (
              <li key={o.id}>
-@@ -209,13 +209,13 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
+@@ -210,13 +210,13 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
    const shownAt = preview.publishedAt ?? preview.timelineAt;
    return (
      <div className="mx-auto max-w-[var(--page-max-reading)] pb-8">
@@ -6145,7 +6162,7 @@ index d0e2b7b..1a98186 100644
            <time dateTime={shownAt} className="mono">{fullDateTime(shownAt)}</time>
            {preview.selected && <span className="ml-1">{preview.sameEvent ? <SameEventBadge /> : <SelectedBadge />}</span>}
            {shownScore(preview.score) !== null && (
-@@ -227,7 +227,7 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
+@@ -228,7 +228,7 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
          {!isX && <h1 data-page-title="" className="text-[26px] font-bold leading-[1.38] tracking-[-0.01em] text-ink">{preview.title}</h1>}
          {preview.summary && (
            <section className={isX ? "mt-4" : "mt-7"}>
@@ -6154,7 +6171,7 @@ index d0e2b7b..1a98186 100644
              <p className="text-[18px] leading-[1.7] text-ink">{preview.summary}</p>
            </section>
          )}
-@@ -245,9 +245,9 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
+@@ -246,9 +246,9 @@ function ItemPreview({ preview }: { preview: FeedItemSummary }) {
        </article>
        <ReaderToolbar
          item={preview}
@@ -6166,7 +6183,7 @@ index d0e2b7b..1a98186 100644
          }}
        />
        <Toast text={toast} />
-@@ -262,13 +262,13 @@ function ItemGone() {
+@@ -263,13 +263,13 @@ function ItemGone() {
    const gone = isRouteErrorResponse(error) && error.status === 404;
    return (
      <div className="mx-auto max-w-sm pb-8">
@@ -6184,7 +6201,7 @@ index d0e2b7b..1a98186 100644
            </button>
          )}
        </div>
-@@ -293,12 +293,12 @@ function ItemView({ item, followups }: Loaded) {
+@@ -294,12 +294,12 @@ function ItemView({ item, followups }: Loaded) {
    };
    const share = async () => {
      const r = await shareOrCopy(item);
@@ -6199,7 +6216,7 @@ index d0e2b7b..1a98186 100644
      } catch {
        // clipboard unavailable
      }
-@@ -308,21 +308,21 @@ function ItemView({ item, followups }: Loaded) {
+@@ -309,21 +309,21 @@ function ItemView({ item, followups }: Loaded) {
        const res = await fetch(`/items/${item.id}/markdown`);
        if (!res.ok) throw new Error(String(res.status));
        await copyText(await res.text());
@@ -6226,7 +6243,7 @@ index d0e2b7b..1a98186 100644
  
    const related = item.relatedStories.filter((s) => s.publicId !== item.story?.publicId);
  
-@@ -333,22 +333,22 @@ function ItemView({ item, followups }: Loaded) {
+@@ -334,22 +334,22 @@ function ItemView({ item, followups }: Loaded) {
    // In the left rail (a flex column) it keeps its own height and width.
    const backButton = (
      <button type="button" onClick={back} className="-ml-1.5 inline-flex h-8 shrink-0 items-center gap-1.5 self-start rounded-full px-1.5 text-[13px] text-ink-3 transition-colors hover:text-ink touch:h-11">
@@ -6256,7 +6273,7 @@ index d0e2b7b..1a98186 100644
                </MenuItem>
              ))}
          </>
-@@ -357,12 +357,12 @@ function ItemView({ item, followups }: Loaded) {
+@@ -358,12 +358,12 @@ function ItemView({ item, followups }: Loaded) {
    );
    // Phones: the same actions as a sheet from the bar (分享 and 原文 are on the toolbar).
    const phoneActions: ActionRow[] = [
@@ -6273,7 +6290,7 @@ index d0e2b7b..1a98186 100644
        : []),
    ];
    const originalLink = (className: string) => (
-@@ -393,7 +393,7 @@ function ItemView({ item, followups }: Loaded) {
+@@ -394,7 +394,7 @@ function ItemView({ item, followups }: Loaded) {
    // Rails: the piece's facts on the left (wide screens), the editor's notes on the right, the outline
    // under the facts (or under the notes when only the right rail shows).
    const facts = (
@@ -6282,7 +6299,7 @@ index d0e2b7b..1a98186 100644
        <div className="text-[14px] font-semibold leading-snug text-ink">{isX ? item.x!.authorName : item.source.name}</div>
        <div className="mt-1 text-[12.5px] leading-relaxed text-ink-3">
          {isX ? `@${item.x!.handle} · X` : item.author ?? hostOf(item.links.original)}
-@@ -416,10 +416,10 @@ function ItemView({ item, followups }: Loaded) {
+@@ -417,10 +417,10 @@ function ItemView({ item, followups }: Loaded) {
            <p className="text-[13.5px] leading-[1.8] text-ink-2">{item.reason}</p>
          </RailSection>
        ) : (
@@ -6295,7 +6312,7 @@ index d0e2b7b..1a98186 100644
            <div className="flex flex-wrap gap-1.5">
              {item.topics.map((t) => (
                <Link viewTransition key={t.slug} to={`/topics/${t.slug}`} className="chip">
-@@ -430,7 +430,7 @@ function ItemView({ item, followups }: Loaded) {
+@@ -431,7 +431,7 @@ function ItemView({ item, followups }: Loaded) {
          </RailSection>
        )}
        {item.tags.length > 0 && (
@@ -6304,7 +6321,7 @@ index d0e2b7b..1a98186 100644
            <div className="flex flex-wrap gap-1.5">
              {item.tags.slice(0, 8).map((t) => (
                <Link key={t} to={`/all?tag=${encodeURIComponent(t)}`} className="chip">
-@@ -449,10 +449,10 @@ function ItemView({ item, followups }: Loaded) {
+@@ -450,10 +450,10 @@ function ItemView({ item, followups }: Loaded) {
  
        {/* Phones: back to where the reader came from, the title once it has scrolled away, more actions. */}
        <PhoneBar
@@ -6317,7 +6334,7 @@ index d0e2b7b..1a98186 100644
              <IconMore size={22} />
            </BarButton>
          }
-@@ -496,7 +496,7 @@ function ItemView({ item, followups }: Loaded) {
+@@ -497,7 +497,7 @@ function ItemView({ item, followups }: Loaded) {
              {isX && <span>· @{item.x!.handle} · X</span>}
              {item.author && !isX && <span>· {item.author}</span>}
              <span>·</span>
@@ -6326,7 +6343,7 @@ index d0e2b7b..1a98186 100644
              <time dateTime={shownAt} className="mono">{fullDateTime(shownAt)}</time>
              <span suppressHydrationWarning>· {relativeTime(shownAt)}</span>
              {item.selected && (
-@@ -515,7 +515,7 @@ function ItemView({ item, followups }: Loaded) {
+@@ -516,7 +516,7 @@ function ItemView({ item, followups }: Loaded) {
  
            {item.summary && (!isX || item.summary.replace(/\s+/g, " ").trim() !== item.title) && (
              <section className={isX ? "mt-4" : "mt-7 xl:mt-8"}>
@@ -6335,7 +6352,7 @@ index d0e2b7b..1a98186 100644
                <p className="text-[18px] leading-[1.7] text-ink xl:text-[20px] xl:leading-[1.7]">{item.summary}</p>
              </section>
            )}
-@@ -529,9 +529,9 @@ function ItemView({ item, followups }: Loaded) {
+@@ -530,9 +530,9 @@ function ItemView({ item, followups }: Loaded) {
  
            {item.sameEvent && (
              <p className="mt-5 text-[13px] leading-relaxed text-ink-4">
@@ -6347,7 +6364,7 @@ index d0e2b7b..1a98186 100644
                </Link>
              </p>
            )}
-@@ -543,7 +543,7 @@ function ItemView({ item, followups }: Loaded) {
+@@ -544,7 +544,7 @@ function ItemView({ item, followups }: Loaded) {
              </div>
            )}
  
@@ -6356,7 +6373,7 @@ index d0e2b7b..1a98186 100644
  
            {item.body && bodyHtml && (
              <section className="mt-9 border-t border-line pt-4 xl:mt-10">
-@@ -553,17 +553,17 @@ function ItemView({ item, followups }: Loaded) {
+@@ -554,17 +554,17 @@ function ItemView({ item, followups }: Loaded) {
                    <PillTabs
                      size="xs"
                      layoutId="item-body-lang"
@@ -6378,7 +6395,7 @@ index d0e2b7b..1a98186 100644
                )}
                <ArticleBody html={bodyHtml} />
              </section>
-@@ -573,7 +573,7 @@ function ItemView({ item, followups }: Loaded) {
+@@ -574,7 +574,7 @@ function ItemView({ item, followups }: Loaded) {
            {isX && item.x!.quoted?.text && <QuotedPost quoted={item.x!.quoted} original={lang === "original"} />}
  
            <p className="mt-8 text-[13px] text-ink-4">
@@ -6387,7 +6404,7 @@ index d0e2b7b..1a98186 100644
              <a href={item.links.original} target="_blank" rel="noopener noreferrer" className="text-ink-3 hover:text-accent">
                {isX ? item.x!.authorName : item.source.name}
              </a>
-@@ -599,7 +599,7 @@ function ItemView({ item, followups }: Loaded) {
+@@ -600,7 +600,7 @@ function ItemView({ item, followups }: Loaded) {
  
            {related.length > 0 && (
              <section className="mt-8">
@@ -6396,7 +6413,7 @@ index d0e2b7b..1a98186 100644
                <ul className="divide-y divide-line-soft">
                  {related.map((s) => (
                    <li key={s.publicId}>
-@@ -617,7 +617,7 @@ function ItemView({ item, followups }: Loaded) {
+@@ -618,7 +618,7 @@ function ItemView({ item, followups }: Loaded) {
        <ReaderToolbar
          item={item}
          originalUrl={item.links.original}
@@ -6406,7 +6423,7 @@ index d0e2b7b..1a98186 100644
          onShare={() => void share()}
        />
 diff --git a/apps/web/app/routes/more.tsx b/apps/web/app/routes/more.tsx
-index e083ed2..f7532d6 100644
+index 8879af9..2a89f99 100644
 --- a/apps/web/app/routes/more.tsx
 +++ b/apps/web/app/routes/more.tsx
 @@ -15,14 +15,14 @@ import { ThemeSwitch } from "../components/shell/ThemeSwitch";
@@ -6446,7 +6463,7 @@ index e083ed2..f7532d6 100644
          </span>
          {row.detail && <span className="text-[14px] font-normal text-ink-4">{row.detail}</span>}
          <IconChevronRight size={16} className="text-ink-4" />
-@@ -76,43 +76,43 @@ export default function MorePage() {
+@@ -76,44 +76,44 @@ export default function MorePage() {
    useEffect(() => setHere(true), []);
    return (
      <div className="mx-auto max-w-[var(--page-max-reading)] pb-8">
@@ -6501,7 +6518,9 @@ index e083ed2..f7532d6 100644
 +        <Link viewTransition to="/privacy" className="hover:text-ink-2">개인정보 처리 안내</Link>
          <a href="/feed.xml" className="hover:text-ink-2">RSS</a>
 -        {SITE.github && <a href={SITE.github} target="_blank" rel="noopener noreferrer" className="hover:text-ink-2">GitHub 开源</a>}
+-        {SITE.poweredBy && <a href={SITE.poweredBy.url} target="_blank" rel="noopener" className="hover:text-ink-2">由 {SITE.poweredBy.name} 驱动</a>}
 +        {SITE.github && <a href={SITE.github} target="_blank" rel="noopener noreferrer" className="hover:text-ink-2">GitHub 소스 코드</a>}
++        {SITE.poweredBy && <a href={SITE.poweredBy.url} target="_blank" rel="noopener" className="hover:text-ink-2">{SITE.poweredBy.name} 기반</a>}
          <Filings className="hover:text-ink-2" badgeSize={13} />
        </div>
      </div>
@@ -6562,15 +6581,15 @@ index d295fcb..a18daad 100644
    return [...pageMeta({
      title: reportTitle(r),
 diff --git a/apps/web/app/routes/report-latest.tsx b/apps/web/app/routes/report-latest.tsx
-index 894b6b3..0b44243 100644
+index 6de2c61..1dbe2f9 100644
 --- a/apps/web/app/routes/report-latest.tsx
 +++ b/apps/web/app/routes/report-latest.tsx
 @@ -1,7 +1,7 @@
  import { useLoaderData } from "react-router";
  import type { Route } from "./+types/report-latest";
  import { REPORT_NAMES, reportDateLabel, type ReportLatestPage } from "@aihot/contracts/site";
--import { REPORTS, subjectAfter, withSubject } from "@aihot/site";
-+import { REPORTS, withSubject } from "@aihot/site";
+-import { REPORTS, SEO_TITLES, subjectAfter, withSubject } from "@aihot/site";
++import { REPORTS, SEO_TITLES, withSubject } from "@aihot/site";
  import { cachedPage, loadOr404 } from "../lib/api.server";
  import { pageReuse } from "../lib/page-reuse";
  import { pageMeta, reportLd } from "../lib/seo";
@@ -6590,7 +6609,7 @@ index 894b6b3..0b44243 100644
 -  const description = report && lead ? `${reportDateLabel(kind, report.key)} ${withSubject("资讯")}：${lead}` : `${REPORTS.descriptions[kind]}。`;
 +  const description = report && lead ? `${reportDateLabel(kind, report.key)} ${withSubject("소식")}: ${lead}` : `${REPORTS.descriptions[kind]}.`;
    return [...pageMeta({
-     title: withSubject(REPORT_NAMES[kind]),
+     title: report ? SEO_TITLES.latestReport(kind, reportDateLabel(kind, report.key)) : withSubject(REPORT_NAMES[kind]),
      description,
 @@ -42,7 +42,7 @@ export default function ReportLatestPage() {
    const { kind, report, index, today } = useLoaderData<typeof loader>();
@@ -7098,10 +7117,10 @@ index b0758fa..df2fa72 100644
            ]}
            note={`${POLICY.terms.name} ${TERMS.doc.meta["版本"] ?? ""} · ${TERMS.doc.meta["生效日期"] ?? ""}`}
 diff --git a/apps/web/app/routes/topic.tsx b/apps/web/app/routes/topic.tsx
-index 27f957c..0e1825b 100644
+index ff65ecd..71e8167 100644
 --- a/apps/web/app/routes/topic.tsx
 +++ b/apps/web/app/routes/topic.tsx
-@@ -53,23 +53,23 @@ function partsOf(data: TopicPage): Part[] {
+@@ -53,22 +53,22 @@ function partsOf(data: TopicPage): Part[] {
  function description(data: TopicPage, parts: Part[]): string {
    const { topic } = data;
    let text = topic.definition;
@@ -7125,12 +7144,10 @@ index 27f957c..0e1825b 100644
    return pageMeta({
      title: page > 1
 -      ? `${topic.name} 精选 · 第 ${page} 页`
--      : `${topic.name} 最新动态${parts.length ? `与${parts.map((p) => p.name).join("、")}` : ""}`,
 +      ? `${topic.name} 추천 · ${page}쪽`
-+      : `${topic.name} 최신 소식${parts.length ? `과 ${parts.map((p) => p.name).join(", ")}` : ""}`,
+       : SEO_TITLES.topic(topic.name, topic.group, topic.latest ? monthDay(beijingDate(topic.latest.at)) : null),
      description: text,
      path,
-     image: `/og/topics/${topic.slug}.png`,
 @@ -79,7 +79,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
        : [
            topicLd({
@@ -7329,7 +7346,7 @@ index e859de9..51224e4 100644
    const token = await createSession(user!.id, userAgent, auth);
    await audit(`admin:${user!.id}`, "auth.login", null, null, null, { method: "password" });
 diff --git a/packages/backend/src/admin/content.ts b/packages/backend/src/admin/content.ts
-index 4230ac5..834bf48 100644
+index 8579bb4..b0bbff8 100644
 --- a/packages/backend/src/admin/content.ts
 +++ b/packages/backend/src/admin/content.ts
 @@ -57,7 +57,7 @@ interface DatedFields { publishedAt: string | null; publishedAtClaim: string | n
@@ -7499,10 +7516,10 @@ index ea485de..2fe5bf7 100644
    return { erased: true };
  }
 diff --git a/packages/backend/src/admin/settings.ts b/packages/backend/src/admin/settings.ts
-index 89a0284..5323634 100644
+index 48ae30a..0598603 100644
 --- a/packages/backend/src/admin/settings.ts
 +++ b/packages/backend/src/admin/settings.ts
-@@ -15,10 +15,10 @@ const MAX_QR_BYTES = 2 * 1024 * 1024;
+@@ -16,10 +16,10 @@ const MAX_QR_BYTES = 2 * 1024 * 1024;
  
  export async function replaceContactQr(input: { slot: keyof ContactSettings; data: Buffer }, actor: string) {
    if (input.slot !== "wechatQr" && input.slot !== "feishuQr") throw new Error("unknown slot");
@@ -7779,10 +7796,10 @@ index dee54b6..57eb680 100644
  
  /** PNG bytes for a poster, from the disk cache when this exact poster was rendered before. */
 diff --git a/packages/backend/src/notify/selected-content.ts b/packages/backend/src/notify/selected-content.ts
-index ffb7ff9..fde2782 100644
+index c5fdb8e..7a570b3 100644
 --- a/packages/backend/src/notify/selected-content.ts
 +++ b/packages/backend/src/notify/selected-content.ts
-@@ -31,7 +31,7 @@ interface Row {
+@@ -32,7 +32,7 @@ interface Row {
  }
  
  /** The original's publication date, so a launch introduced again weeks later does not read as today's. */
@@ -7791,7 +7808,7 @@ index ffb7ff9..fde2782 100644
  
  /** Model-written words go into card markdown: its markup characters are shown as written. */
  const literal = (text: string) => text.replace(/[&<>*_~`[\]]/g, (c) => `&#${c.charCodeAt(0)};`);
-@@ -54,7 +54,7 @@ function card(r: Row) {
+@@ -55,7 +55,7 @@ function card(r: Row) {
          { tag: "markdown", text_size: "notation", content: `<font color='grey'>${literal(publicSourceName(r.source_name))} · ${published(r.published_at!)}</font>` },
          { tag: "markdown", content: literal(r.summary ?? "") },
          ...(r.reason ? [{ tag: "markdown", text_size: "notation", content: `<font color='grey'>**${ITEM_COPY.reasonLabel}**　${literal(r.reason)}</font>` }] : []),
@@ -7801,10 +7818,10 @@ index ffb7ff9..fde2782 100644
      },
    };
 diff --git a/packages/backend/src/operations/alerts.ts b/packages/backend/src/operations/alerts.ts
-index 555b402..5a36057 100644
+index 8daaaee..a00312c 100644
 --- a/packages/backend/src/operations/alerts.ts
 +++ b/packages/backend/src/operations/alerts.ts
-@@ -320,6 +320,7 @@ const PROVIDERS: Record<string, { name: string; where: string; stops?: string }>
+@@ -322,6 +322,7 @@ const PROVIDERS: Record<string, { name: string; where: string; stops?: string }>
    dashscope: { name: "阿里云百炼", where: "阿里云百炼控制台" },
    deepseek: { name: "DeepSeek", where: "DeepSeek 开放平台" },
    mimo: { name: "小米 MiMo", where: "小米 MiMo 开放平台" },
@@ -8225,10 +8242,10 @@ index b0199ab..db95ac0 100644
    return `${lines.join("\n")}\n`;
  }
 diff --git a/packages/backend/src/publication/detail.ts b/packages/backend/src/publication/detail.ts
-index 2357810..15f7443 100644
+index eeebf21..ec9ba16 100644
 --- a/packages/backend/src/publication/detail.ts
 +++ b/packages/backend/src/publication/detail.ts
-@@ -183,29 +183,29 @@ export async function exportMarkdown(id: string): Promise<{ filename: string; bo
+@@ -186,29 +186,29 @@ export async function exportMarkdown(id: string): Promise<{ filename: string; bo
    if (!row || !markdownAvailable(row)) return null;
    const lines: string[] = [];
    lines.push(`# ${row.title}`, "");
@@ -8655,7 +8672,7 @@ index cf9b951..be1ad48 100644
  
  const RELATIVE_UNITS: Record<string, number> = { 秒: 1e3, 分钟: 60e3, 分: 60e3, 小时: 3600e3, 天: 86400e3, second: 1e3, minute: 60e3, min: 60e3, m: 60e3, hour: 3600e3, hr: 3600e3, h: 3600e3, day: 86400e3, d: 86400e3 };
 diff --git a/packages/backend/src/sources/rss.ts b/packages/backend/src/sources/rss.ts
-index a6076f4..1923401 100644
+index 4d08ed6..4d14c6f 100644
 --- a/packages/backend/src/sources/rss.ts
 +++ b/packages/backend/src/sources/rss.ts
 @@ -11,6 +11,7 @@ import { normalizeUrl } from "../lib/url.ts";
@@ -8677,10 +8694,10 @@ index a6076f4..1923401 100644
    if (Number.isFinite(t)) return new Date(t);
    // RFC 822 variants with Chinese weekday or odd zones
 diff --git a/packages/backend/src/sources/web-list.ts b/packages/backend/src/sources/web-list.ts
-index a134fcd..72727ce 100644
+index fc92f62..4df5299 100644
 --- a/packages/backend/src/sources/web-list.ts
 +++ b/packages/backend/src/sources/web-list.ts
-@@ -183,7 +183,7 @@ export function fromHtml(html: string, base: string, source: SourceRow): Candida
+@@ -184,7 +184,7 @@ export function fromHtml(html: string, base: string, source: SourceRow): Candida
  const DATE_HEADING = /^(?:[^\d:：]{1,12}[:：])?\s*(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/;
  
  /** The day a date heading names, at midnight in the source's offset (Date.parse would read "时间: …" in the host's zone). */
@@ -8690,10 +8707,10 @@ index a134fcd..72727ce 100644
    if (!m) return undefined;
    return readPublicationDate(`${m[1]}/${m[2]}/${m[3]}`, utcOffset);
 diff --git a/packages/contracts/src/site.ts b/packages/contracts/src/site.ts
-index cfc32af..d668eb7 100644
+index ac69ec9..66c555f 100644
 --- a/packages/contracts/src/site.ts
 +++ b/packages/contracts/src/site.ts
-@@ -278,14 +278,14 @@ export interface StoryDetail {
+@@ -280,14 +280,14 @@ export interface StoryDetail {
  export type ReportKind = "daily" | "weekly" | "monthly";
  
  /** What each kind of report is called. */

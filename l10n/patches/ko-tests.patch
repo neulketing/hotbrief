@@ -85,7 +85,7 @@ index 08083e8..494c581 100644
    const alibaba = { title: "Alibaba ships a new coding model", text: "Alibaba released a coding model with pricing details.", sourceKind: "rss" };
    assert.equal(enforceIdentity(alibaba, { titleZh: "阿里巴巴发布编程模型", summaryZh: "阿里巴巴发布了编程模型并公布价格。" }).identityGuard.outcome, "pass");
 diff --git a/tests/architecture.test.ts b/tests/architecture.test.ts
-index 7c195f0..4eeed91 100644
+index e0f27b8..afce977 100644
 --- a/tests/architecture.test.ts
 +++ b/tests/architecture.test.ts
 @@ -167,10 +167,11 @@ test("every environment variable the code reads is listed in a template, and eve
@@ -170,10 +170,10 @@ index 101b800..1266422 100644
    assert.equal(restored!.content.metrics.modelsReleased, 1);
  });
 diff --git a/tests/extraction-consistency.test.ts b/tests/extraction-consistency.test.ts
-index de4a4fe..2b2e76b 100644
+index 7bc84f3..29194be 100644
 --- a/tests/extraction-consistency.test.ts
 +++ b/tests/extraction-consistency.test.ts
-@@ -121,8 +121,8 @@ test("an audited presentation refresh previews and applies only the reviewed lay
+@@ -149,8 +149,8 @@ test("an audited presentation refresh previews and applies only the reviewed lay
    presentationHtml = `<p>${body} The actual model price has changed.</p>`;
    const semantic = await rerun(articleId, "presentation", "preview-wording", "test", { preview: true });
    assert.ok(semantic && "ready" in semantic && !semantic.ready);
@@ -198,10 +198,10 @@ index d3d13fc..50d3f07 100644
    for (let i = 0; i < 20; i++) await submitFeedback(forged);
    await assert.rejects(submitFeedback(forged), e => e instanceof FeedbackRejected && e.status === 429);
 diff --git a/tests/feedback.test.ts b/tests/feedback.test.ts
-index 77797e2..d30c92d 100644
+index e728c3e..da8fb15 100644
 --- a/tests/feedback.test.ts
 +++ b/tests/feedback.test.ts
-@@ -203,7 +203,7 @@ test("the pool lists every idea, however many there are", async () => {
+@@ -273,7 +273,7 @@ test("the pool lists every idea, however many there are", async () => {
  test("an unknown kind, an idea outside a suggestion and a stale version are refused; reclassifying leaves the pool", async () => {
    const { id } = await ask("为什么模型榜上没有千问了", "198.51.100.21");
    await assert.rejects(handle(id, { kind: "praise" }), /unknown kind/);
@@ -256,10 +256,10 @@ index df9130b..d761ebd 100644
    );
  });
 diff --git a/tests/page-metadata.standalone.test.ts b/tests/page-metadata.standalone.test.ts
-index 86885dd..99c909f 100644
+index 882b86c..4f05a50 100644
 --- a/tests/page-metadata.standalone.test.ts
 +++ b/tests/page-metadata.standalone.test.ts
-@@ -73,16 +73,17 @@ test("ordinary feed pages remain indexable and normalize ignored parameters", as
+@@ -82,16 +82,17 @@ test("ordinary feed pages remain indexable and normalize ignored parameters", as
      const $ = await page(requested!);
      assert.equal($("meta[name=robots]").attr("content"), undefined);
      assert.equal($("link[rel=canonical]").attr("href"), `${web.origin}${canonical}`);
@@ -272,7 +272,7 @@ index 86885dd..99c909f 100644
 -for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly", "周报", "9月28日—10月4日"], ["monthly", "月报", "2026年10月"]] as const) {
 +// HotBrief ko: Korean report names, dates ("10월 4일") and title punctuation (" | ", ": ").
 +for (const [kind, label, date] of [["daily", "일간 브리핑", "10월 4일"], ["weekly", "주간 브리핑", "9월 28일—10월 4일"], ["monthly", "월간 브리핑", "2026년 10월"]] as const) {
-   test(`${kind} issue metadata describes its visible lead while the permanent entry keeps its title`, async () => {
+   test(`${kind} issue metadata describes its visible lead and the permanent entry names the latest issue's date`, async () => {
      const r = report(kind);
      const $ = await page(`/${kind}/${r.key}`);
 -    const title = `${withSubject(label)}｜${date}：${r.lead!.title}`;
@@ -280,7 +280,7 @@ index 86885dd..99c909f 100644
      assert.equal($("title").text(), `${title} · ${SITE.name}`);
      assert.equal($("meta[property='og:title']").attr("content"), title);
      assert.ok($("main").text().includes(r.lead!.title));
-@@ -96,10 +97,11 @@ for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly",
+@@ -106,10 +107,11 @@ for (const [kind, label, date] of [["daily", "日报", "10月4日"], ["weekly",
  }
  
  test("an issue's date reads as Chinese readers write it, across months and years", () => {
@@ -528,10 +528,10 @@ index b810ea5..28c25e7 100644
  
  test("legacy JSON and RSS formats keep their source date and zone", () => {
 diff --git a/tests/sources.standalone.test.ts b/tests/sources.standalone.test.ts
-index 8a9b603..2119eb2 100644
+index 2924619..01a71b6 100644
 --- a/tests/sources.standalone.test.ts
 +++ b/tests/sources.standalone.test.ts
-@@ -236,10 +236,11 @@ test("noise words match whatever their case", () => {
+@@ -239,10 +239,11 @@ test("noise words match whatever their case", () => {
  test("a time without a zone is read in the source's offset, in JSON lists and in detail page metadata", async () => {
    const list = async (extra: Record<string, unknown> = {}) => (await fetchJsonList({ id: "test-json", config: { url: `${site}/zoneless.json`, itemsPath: "result", titlePaths: ["title"], urlTemplate: "https://example.org/p/{id}", publishedAtPath: "publishDate", ...extra } } as never))
      .map((c) => c.publishedAt?.toISOString());
@@ -545,7 +545,7 @@ index 8a9b603..2119eb2 100644
  });
  
  test("posts embedded in a flight payload keep their own arrays and brackets inside strings", async () => {
-@@ -249,9 +250,10 @@ test("posts embedded in a flight payload keep their own arrays and brackets insi
+@@ -252,9 +253,10 @@ test("posts embedded in a flight payload keep their own arrays and brackets insi
  
  test("dates in yyyymmdd and in JSON-LD are read", async () => {
    const days = await fetchJsonList({ id: "test-json", config: { url: `${site}/days.json`, itemsPath: "data.list", titlePaths: ["ttl"], urlTemplate: "https://example.org/blog/view?seq={seq}", publishedAtPath: "day", publishedAtUnit: "yyyymmdd" } } as never);
@@ -727,7 +727,7 @@ index 0c523f0..e0bec2b 100644
  
  test("withdrawn articles stay out of lists and counts", async () => {
 diff --git a/tests/translate.test.ts b/tests/translate.test.ts
-index 01b5738..00cdf23 100644
+index 167b282..b84788b 100644
 --- a/tests/translate.test.ts
 +++ b/tests/translate.test.ts
 @@ -79,8 +79,9 @@ after(async () => {
