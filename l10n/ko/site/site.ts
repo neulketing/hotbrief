@@ -46,6 +46,11 @@ export const SITE = {
   tagline: "꼭 봐야 할 AI 소식",
   /** 검색엔진이 읽는 키워드(홈의 구조화 데이터). */
   keywords: ["AI 뉴스", "인공지능 뉴스", "AI 브리핑", "AI 업계 동향"] as string[],
+  /**
+   * 검색엔진 웹마스터 도구의 사이트 소유 확인(선택): meta 이름 → 받은 확인 코드. 홈의 head 에 들어간다.
+   * 예: "naver-site-verification": "…", "google-site-verification": "…", "msvalidate.01": "…". 확인이 끝나도 지우지 않는다(주기적으로 다시 확인한다).
+   */
+  siteVerification: {} as Record<string, string>,
   /** 수집을 시작한 해(구조화 데이터의 기간, 선택). */
   since: null as string | null,
   /** 화면 언어(HTML lang, og:locale). */
@@ -74,6 +79,8 @@ export const SITE = {
   psb: null as string | null,
   /** 소스 코드 GitHub 주소(선택). 넣으면 사이드바와 "내 정보" 맨 아래에 "GitHub 오픈소스"가 나온다. */
   github: "https://github.com/neulketing/hotbrief" as string | null,
+  /** 바닥글의 "X 기반"(선택): 넣으면 사이드바 아래와 "내 정보" 맨 아래에 보이고 그 주소로 연결된다. 기본은 원본 AIHOT 로 연결하며, 빼려면 null. */
+  poweredBy: { name: "AIHOT", url: "https://aihot.news" } as { name: string; url: string } | null,
   /** 구조화 데이터의 사이트 운영자(검색엔진용). */
   organization: {
     name: "HotBrief",
@@ -286,3 +293,24 @@ function spokenTime(time: string): string {
   const [hour, minute] = time.split(":").map(Number) as [number, number];
   return `${hour < 12 ? "오전" : "오후"} ${hour % 12 || 12}시${minute ? ` ${minute}분` : ""}`;
 }
+
+/**
+ * 입구 페이지가 검색 결과에 보일 제목: 독자가 검색할 말을 앞에 두고, 페이지가 맨 끝에 " · 사이트 이름"을 붙인다(홈은 SITE.homeTitle).
+ * 날짜는 오늘이 아니라 그 호·그 페이지 내용의 날짜다. 분야를 바꾸면 안의 말도 같이 바꾼다.
+ */
+export const SEO_TITLES = {
+  /** 핫이슈(/hot). */
+  hot: `${withSubject("핫이슈")}: 오늘의 인기 이슈 순위`,
+  /** 전체 소식(/all). 검색·필터 결과는 제외. */
+  all: `${subjectAfter("최신", "소식")}: 실시간 업데이트`,
+  /** 에이전트 연결 페이지(/agent). */
+  agent: `${withSubject("뉴스")} API, MCP, RSS: 내 에이전트에 연결하기`,
+  /** 소개 페이지(/about)의 전체 제목. 사이트 이름이 들어 있다. */
+  about: `${SITE.name} 소개: ${SITE.tagline}`,
+  /** 일간·주간·월간 브리핑의 최신 호(/daily, /weekly, /monthly). date 는 그 호의 날짜다. */
+  latestReport: (kind: "daily" | "weekly" | "monthly", date: string): string =>
+    ({ daily: `${withSubject("일간 브리핑")}: ${subjectAfter("매일", "뉴스")}(${date})`, weekly: `${withSubject("주간 브리핑")}: 한 주의 주요 소식 정리(${date})`, monthly: `${withSubject("월간 브리핑")}: ${date} 주요 소식 정리` })[kind],
+  /** 주제 페이지 첫 쪽: 회사는 "최신 소식", 분야와 콘텐츠 유형은 "최신 동향". updated 는 가장 최근 엄선 글의 날짜이고 없으면 null. */
+  topic: (name: string, group: "company" | "field" | "genre", updated: string | null): string =>
+    `${name} ${group === "company" ? "최신 소식과 동향" : "최신 동향과 흐름"}${updated ? `(${updated} 업데이트)` : ""}`,
+};

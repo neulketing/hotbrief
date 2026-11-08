@@ -47,6 +47,11 @@ export const SITE = {
   tagline: "The AI news worth your time",
   /** Keywords for search engines (structured data on the home page). */
   keywords: ["AI news", "artificial intelligence news", "AI briefing", "AI industry news"] as string[],
+  /**
+   * Search-engine webmaster site verification (optional): meta name → the code the platform gives you, placed in the home page's head.
+   * For example "google-site-verification": "…", "msvalidate.01": "…". Keep it after verification passes; platforms re-check periodically.
+   */
+  siteVerification: {} as Record<string, string>,
   /** The year the site started collecting (structured data, optional). */
   since: null as string | null,
   /** Interface language (HTML lang, og:locale). */
@@ -75,6 +80,8 @@ export const SITE = {
   psb: null as string | null,
   /** The source code's GitHub address (optional); shows "Open source on GitHub" in the sidebar and on the "Me" page. */
   github: "https://github.com/neulketing/hotbrief" as string | null,
+  /** "Powered by X" in the footer (optional): shown at the bottom of the sidebar and the "Me" page, linking to its address. Defaults to the original AIHOT; null hides it. */
+  poweredBy: { name: "AIHOT", url: "https://aihot.news" } as { name: string; url: string } | null,
   /** The site operator in structured data (for search engines). */
   organization: {
     name: "HotBrief",
@@ -281,3 +288,24 @@ export function withSubject(noun: string): string {
 export function subjectAfter(text: string, noun?: string): string {
   return `${text} ${noun ? withSubject(noun) : SITE.subject}`;
 }
+
+/**
+ * Search-result titles for the entry pages: the words readers search for come first, and the page appends " · site name" (the home page uses SITE.homeTitle).
+ * Dates are always the date of this issue or this page's content, not today. Change the wording along with the field.
+ */
+export const SEO_TITLES = {
+  /** Trending (/hot). */
+  hot: `Trending ${SITE.subject} news: today's top stories ranked`,
+  /** All news (/all), not search or filter results. */
+  all: `${subjectAfter("Latest", "news")}: live updates`,
+  /** The agent page (/agent). */
+  agent: `${withSubject("news")} API, MCP and RSS: plug it into your agent`,
+  /** The full title of the about page (/about), site name included. */
+  about: `About ${SITE.name}: ${SITE.tagline}`,
+  /** The latest daily, weekly or monthly issue (/daily, /weekly, /monthly); date is this issue's date. */
+  latestReport: (kind: "daily" | "weekly" | "monthly", date: string): string =>
+    ({ daily: `${SITE.subject} Daily: ${subjectAfter("today's", "news")} (${date})`, weekly: `${SITE.subject} Weekly: the week in review (${date})`, monthly: `${SITE.subject} Monthly: ${date} in review` })[kind],
+  /** First page of a topic: companies get "latest news", fields and content types get "latest developments"; updated is the date of the newest pick, or null. */
+  topic: (name: string, group: "company" | "field" | "genre", updated: string | null): string =>
+    `${name} ${group === "company" ? "latest news and updates" : "latest developments"}${updated ? ` (updated ${updated})` : ""}`,
+};
