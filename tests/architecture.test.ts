@@ -179,7 +179,6 @@ const convertsBeijingTime = (line: string) =>
 const CONVERTS_BEIJING_TIME: Record<string, string> = {
   "packages/contracts/src/time.ts": "the conversions themselves",
   "packages/backend/src/editorial/analyze.ts": "the score input keeps the form its prompt was tuned on (whole seconds without .000)",
-  "packages/backend/src/editorial/writing.ts": "a beijingDate written out, left to the next change of editorial/",
   "site/changelog/FeatureRelease.tsx": "a changelog entry's Beijing date and time with its zone, to the minute, in dateTime",
   "clients/watchdog/watchdog.mjs": "installed as one file away from the repository, so it cannot import time.ts",
   "clients/mp-watch/articles.ts": "installed away from the repository with only its module's contracts, so it cannot import time.ts",
@@ -275,4 +274,19 @@ test("pages are prefetched only through IntentLink", () => {
       && /\bprefetch\s*=|\bprefetch\s*:\s*["'`]|PrefetchPageLinks|rel=["']prefetch/.test(line))
     .map(({ at }) => at);
   assert.deepEqual(found, [], "link with IntentLink (in PillTabs, prefetchOnPress), which prefetches when the reader presses");
+});
+
+test("admin page loaders use adminPageGet and GRAY_HEADERS", async () => {
+  const { MODULES } = await import("@aihot/site/modules");
+  const pages = MODULES.flatMap((m) => (m.pages ?? []).flatMap((p) => ("layout" in p ? p.pages : [p])).filter((p) => p.admin).map((p) => `modules/${m.name}/${p.file}`));
+  for (const file of pages) {
+    const text = readFileSync(path.join(ROOT, file), "utf8");
+    assert.ok(/\badminPageGet\b/.test(text) && /\bGRAY_HEADERS\b/.test(text), `${file} must use adminPageGet and GRAY_HEADERS`);
+  }
+});
+
+// Animations use Presence.tsx (CSS keyframes) or the Web Animations API, not a runtime animation library.
+test("web code does not import motion or framer-motion", () => {
+  const found = violations([...sources("apps/web"), ...moduleWeb(), ...sources("site")], (_file, spec) => /^(?:motion|framer-motion)(?:$|\/)/.test(spec));
+  assert.deepEqual(found, [], "animate with Presence.tsx, CSS keyframes or the Web Animations API instead of motion");
 });

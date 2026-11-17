@@ -1,10 +1,9 @@
 // Admin API (/api/admin/*): what each back-office endpoint returns, shared by the api's admin
 // functions and the admin pages. Only administrators reach it; it changes with the admin UI and is
 // never a public contract. Rows mirror their SQL columns (snake_case); timestamps are ISO strings.
-import { ADMIN } from "@aihot/site";
 
-/** Where signing in leads when the visitor was not headed anywhere: the admin pages, on a site that has them. */
-export const SIGN_IN_HOME = ADMIN ? "/admin" : "/";
+/** Where signing in leads when the visitor was not headed anywhere. Only a site with admin pages has a sign-in. */
+export const SIGN_IN_HOME = "/admin";
 
 /**
  * A path on this site to go to after signing in; anything else (other hosts, protocol-relative, schemes) is
@@ -92,7 +91,7 @@ export const REPLACEABLE_SOURCE_KINDS = ["rss", "web_list", "json_list"] as cons
 export type ReplaceableSourceKind = typeof REPLACEABLE_SOURCE_KINDS[number];
 
 export interface AdminSourceUpdate {
-  patch: Partial<Pick<AdminSource, "name" | "enabled" | "interval_minutes" | "tier" | "selection_class" | "participation_mode" | "signal_group_id" | "first_party" | "owner_entity_id" | "site_fulltext" | "syndicate_fulltext" | "tags" | "uses">> & (
+  patch: Partial<Pick<AdminSource, "name" | "enabled" | "interval_minutes" | "tier" | "selection_class" | "participation_mode" | "signal_group_id" | "owner_entity_id" | "site_fulltext" | "syndicate_fulltext" | "tags" | "uses">> & (
     { kind?: never; config?: Record<string, unknown> } | { kind: ReplaceableSourceKind; config: Record<string, unknown> }
   );
   version: string;
@@ -134,7 +133,6 @@ export interface AdminSource {
   kind: string;
   config: Record<string, unknown>;
   tags: string[];
-  first_party: boolean;
   owner_entity_id: string | null;
   tier: string;
   /** A class of the industry pack's selection rules (industry/selection.ts): raises the tier's threshold. */

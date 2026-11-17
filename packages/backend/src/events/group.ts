@@ -117,7 +117,7 @@ async function judgeSignal(articleId: string, query: ReportView, cands: Candidat
 
 async function createStory(db: Db, title: string, at: Date): Promise<number> {
   const cleanTitle = editorialPolicy().sanitizeEventCopy
-    ? editorialPolicy().sanitizeEventCopy!({ title, taiwanContext: true }).title.slice(0, 120)
+    ? editorialPolicy().sanitizeEventCopy!({ title }).title.slice(0, 120)
     : title;
   const [row] = await db<{ id: number }[]>`
     INSERT INTO stories (public_id, title, first_report_at, latest_at, origin)
@@ -136,7 +136,6 @@ async function createFact(db: Db, storyId: number, title: string, frame: Record<
         subject: frame?.subject ?? null,
         action: frame?.action ?? null,
         object: frame?.object ?? null,
-        taiwanContext: true,
       })
     : { title, conditions: rawConditions, subject: frame?.subject ?? null, action: frame?.action ?? null, object: frame?.object ?? null };
   const [row] = await db<{ id: number }[]>`
@@ -228,7 +227,6 @@ export async function syncArticleEventCopyTx(tx: Db, articleId: string): Promise
       subject: soleActive && frame ? (frame.subject ?? null) : m.subject,
       action: soleActive && frame ? (frame.action ?? null) : m.action,
       object: soleActive && frame ? (frame.object ?? null) : m.object,
-      taiwanContext: true,
     });
     if (
       cleaned.title !== m.fact_title
@@ -270,7 +268,6 @@ export async function syncArticleEventCopyTx(tx: Db, articleId: string): Promise
     const cleanedStory = sanitizer({
       title: desiredStoryTitle,
       fallbackTitle: fallbackStoryTitle.slice(0, 120),
-      taiwanContext: true,
     });
     if (cleanedStory.title !== m.story_title) {
       await tx`UPDATE stories SET title = ${cleanedStory.title.slice(0, 120)}, updated_at = now() WHERE id = ${storyId}`;
@@ -481,11 +478,11 @@ async function decide(articleId: string, opts: GroupOptions, revision: number, r
   const faceCards = async (selection: SelectionValue, ownFact: number | null = null): Promise<{ selection: SelectionValue; into?: CardRow }> => {
     if (!reader || !selection.addsValue) return { selection };
     if (independent) {
-      const echoes = await echoesOnCard(reader);
+      const echoes = await echoesOnCard(reader, ownFact);
       if (echoes.length) replaces = { ids: echoes.map((echo) => echo.article_id), title: reader.view.title };
       return { selection };
     }
-    const article = await ownArticleOnCard(reader);
+    const article = await ownArticleOnCard(reader, ownFact);
     if (article) return { selection: { addsValue: false, reason: alreadyOnCard(article.title) } };
     if (ownFact && await factHasCard(ownFact)) return { selection };
     const card = await seenOnCard(reader, ownFact);
@@ -514,7 +511,7 @@ async function decide(articleId: string, opts: GroupOptions, revision: number, r
   // nulls from before the value check keep their existing value without buying another judgement.
   if (kept && !recheckSelection) {
     // A retry after the commit below failed still owes the article's replacement; the answers are saved.
-    if (independent) await faceCards({ addsValue: addedValue !== false, reason: "" });
+    if (independent) await faceCards({ addsValue: addedValue !== false, reason: "" }, kept.factId);
     await sql.begin(async (tx) => {
       await markGrouped(articleId, a.revision, undefined, tx);
       await syncArticleEventCopyTx(tx, articleId);
