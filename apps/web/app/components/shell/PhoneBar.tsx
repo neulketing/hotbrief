@@ -41,7 +41,7 @@ export function PhoneBar({ back, title, leading, center, actions }: {
             title && (
               <span
                 aria-hidden={!titleShown}
-                className={`truncate text-[15.5px] font-semibold text-ink transition-[opacity,transform] duration-200 ${titleShown ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
+                className={`truncate text-ui-body-plus font-semibold text-ink transition-[opacity,transform] duration-200 ${titleShown ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
               >
                 {title}
               </span>
@@ -72,7 +72,7 @@ function BackButton({ to, label }: BackTarget) {
         if (historyIndex() > 0) navigate(-1);
         else navigate(to, { viewTransition: true });
       }}
-      className="flex h-11 min-w-11 items-center pl-1 pr-2 text-[16px] text-accent transition-opacity active:opacity-50"
+      className="flex h-11 min-w-11 items-center pl-1 pr-2 text-ui-body-lg text-accent transition-opacity active:opacity-50"
     >
       <IconChevronLeft size={25} strokeWidth={2.1} />
       <span className="max-w-[7em] truncate">{text}</span>

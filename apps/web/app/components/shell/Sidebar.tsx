@@ -27,7 +27,7 @@ function SideLink({ item, dot, active }: { item: NavItem; dot: boolean; active: 
     <IntentLink
       to={item.to}
       aria-current={active ? "page" : undefined}
-      className={`flex h-10 items-center gap-2.5 rounded-control px-2.5 text-[14px] transition-colors duration-150 touch:h-11 ${
+      className={`flex h-10 items-center gap-2.5 rounded-control px-2.5 text-ui-body-sm transition-colors duration-150 touch:h-11 ${
         active ? "bg-accent/10 font-semibold text-ink dark:bg-accent-soft" : "font-medium text-ink-3 hover:bg-bg-sunk hover:text-ink"
       }`}
     >
@@ -63,7 +63,7 @@ function Rail({ dot }: { dot: boolean }) {
               key={t.key}
               to={t.to}
               aria-current={on ? "page" : undefined}
-              className={`relative flex h-14 shrink-0 flex-col items-center justify-center gap-[3px] rounded-control text-[11px] transition-colors duration-150 short:h-12 ${
+              className={`relative flex h-14 shrink-0 flex-col items-center justify-center gap-[3px] rounded-control text-ui-caption-sm transition-colors duration-150 short:h-12 ${
                 on ? "bg-accent/10 font-semibold text-ink dark:bg-accent-soft" : "font-medium text-ink-3 hover:bg-bg-sunk hover:text-ink"
               }`}
             >
@@ -101,7 +101,7 @@ export function Sidebar({ changelogVersion }: { changelogVersion: string | null 
             const lit = activeSidebarItem(section.items, pathname);
             return (
               <div key={section.title}>
-                <div className="px-2.5 pb-1 pt-3.5 text-[11px] text-ink-4">{section.title}</div>
+                <div className="px-2.5 pb-1 pt-3.5 text-ui-caption-sm text-ink-4">{section.title}</div>
                 <div className="flex flex-col gap-1">
                   {section.items.map((item) => (
                     <SideLink key={item.to} item={item} dot={dot} active={item.to === lit?.to} />
@@ -132,11 +132,11 @@ export function Sidebar({ changelogVersion }: { changelogVersion: string | null 
           {/* Centred under the buttons; the full width keeps the longer public-security number on one line. */}
           <div className="-mx-1 flex flex-col items-center gap-1.5">
             {SITE.poweredBy && (
-              <a href={SITE.poweredBy.url} target="_blank" rel="noopener" className="whitespace-nowrap text-[9.5px] leading-[1.3] text-ink-4 hover:text-ink-3">
+              <a href={SITE.poweredBy.url} target="_blank" rel="noopener" className="whitespace-nowrap text-ui-micro-6 leading-[1.3] text-ink-4 hover:text-ink-3">
                 由 {SITE.poweredBy.name} 驱动
               </a>
             )}
-            <Filings className="whitespace-nowrap text-[9.5px] leading-[1.3] text-ink-4 hover:text-ink-3" badgeSize={10} />
+            <Filings className="whitespace-nowrap text-ui-micro-6 leading-[1.3] text-ink-4 hover:text-ink-3" badgeSize={10} />
           </div>
         </div>
       </aside>
