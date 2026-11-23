@@ -3,7 +3,7 @@
     {
       "key": "company",
       "name": "Companies and models",
-      "blurb": "Follow models, products and company news by vendor"
+      "blurb": "Track model releases, product changes and moves at the companies that matter"
     },
     {
       "key": "field",
@@ -13,7 +13,7 @@
     {
       "key": "genre",
       "name": "Content types",
-      "blurb": "Browse by genre: papers, tutorials, opinion, policy…"
+      "blurb": "Browse by form: new models, papers, tutorials, opinion…"
     }
   ],
   "topics": [
@@ -22,14 +22,14 @@
       "name": "OpenAI / ChatGPT",
       "group": "company",
       "entityId": "openai",
-      "definition": "OpenAI's GPT models, ChatGPT and Sora product updates, and changes in company strategy and people."
+      "definition": "The latest moves in the GPT models, ChatGPT and Sora, plus OpenAI's strategy and people changes."
     },
     {
       "slug": "anthropic",
       "name": "Anthropic / Claude",
       "group": "company",
       "entityId": "anthropic",
-      "definition": "Anthropic's Claude models and Claude Code updates, plus its safety research and company moves."
+      "definition": "Updates to Claude models and Claude Code, and Anthropic's moves in safety research and business."
     },
     {
       "slug": "google",
@@ -39,21 +39,21 @@
       "aliases": [
         "DeepMind"
       ],
-      "definition": "Google and DeepMind's Gemini models, Veo video generation, frontier research and AI updates across their product lines."
+      "definition": "Progress on Gemini, Veo and other models, DeepMind frontier research, and AI updates across Google's product lines."
     },
     {
       "slug": "deepseek",
       "name": "DeepSeek",
       "group": "company",
       "entityId": "deepseek",
-      "definition": "DeepSeek's model releases, open weights, technical reports and API price changes."
+      "definition": "DeepSeek's new models, open weights, technical reports, and API price and service changes."
     },
     {
       "slug": "qwen",
       "name": "Alibaba Qwen",
       "group": "company",
       "entityId": "qwen",
-      "definition": "Model releases and open updates in Alibaba's Qwen family, from flagship models to small ones that fit on a phone."
+      "definition": "Releases and open updates across Alibaba Qwen generations, from flagships to small on-device models."
     },
     {
       "slug": "kimi",
@@ -61,70 +61,70 @@
       "group": "company",
       "entityId": "kimi",
       "aliases": ["Kimi / Moonshot AI"],
-      "definition": "Moonshot AI's Kimi product updates, the open K series models and progress on long-context work."
+      "definition": "Moonshot AI's Kimi product iterations, the open K series models, and progress on long-context ability."
     },
     {
       "slug": "minimax",
       "name": "MiniMax",
       "group": "company",
       "entityId": "minimax",
-      "definition": "MiniMax's M series models, voice and multimodal capabilities, open releases and commercialization."
+      "definition": "MiniMax's M series models, voice and audio-video generation, and its open-source and commercialization moves."
     },
     {
       "slug": "zhipu",
       "name": "Zhipu GLM",
       "group": "company",
       "entityId": "zhipu",
-      "definition": "Releases and open updates of Zhipu's GLM models, plus progress in coding, reasoning and commercialization."
+      "definition": "New models and open releases in Zhipu's GLM family, with the focus on coding, reasoning and commercialization."
     },
     {
       "slug": "xai",
       "name": "xAI / Grok",
       "group": "company",
       "entityId": "xai",
-      "definition": "Grok model updates from Elon Musk's xAI, its compute cluster build-out and integration with X."
+      "definition": "Grok model iterations from Elon Musk's xAI, its compute-cluster build-out, and integration with X."
     },
     {
       "slug": "meta",
       "name": "Meta / Llama",
       "group": "company",
       "entityId": "meta",
-      "definition": "Meta's Llama and Muse models, its superintelligence lab and Meta AI products."
+      "definition": "Models Meta ships, such as Llama and Muse, plus the superintelligence lab and Meta AI product moves."
     },
     {
       "slug": "microsoft",
       "name": "Microsoft / Copilot",
       "group": "company",
       "entityId": "microsoft",
-      "definition": "Microsoft's Copilot products, Azure AI cloud services and its partnership with OpenAI."
+      "definition": "Microsoft's full Copilot lineup, Azure AI cloud services, and the latest on its partnership with OpenAI."
     },
     {
       "slug": "nvidia",
       "name": "NVIDIA",
       "group": "company",
       "entityId": "nvidia",
-      "definition": "NVIDIA's new GPUs, the CUDA software ecosystem, robotics platforms and the supply and demand of AI compute."
+      "definition": "NVIDIA's next-generation GPUs, the CUDA software ecosystem, robotics platforms, and shifts in AI compute supply and demand."
     },
     {
       "slug": "hugging-face",
       "name": "Hugging Face",
       "group": "company",
       "entityId": "hugging-face",
-      "definition": "Trending open models, datasets, tools and leaderboard changes in the Hugging Face community."
+      "definition": "The open models, datasets, tools and leaderboard changes drawing the most attention in the Hugging Face community."
     },
     {
       "slug": "cursor",
       "name": "Cursor",
       "group": "company",
       "entityId": "cursor",
-      "definition": "Cursor (Anysphere): editor and coding agent updates, in-house models and pricing changes."
+      "definition": "Feature iterations of the Cursor editor and coding agent, its in-house models, and subscription pricing changes."
     },
     {
       "slug": "openrouter",
       "name": "OpenRouter",
       "group": "company",
       "entityId": "openrouter",
-      "definition": "New models listed on OpenRouter, price changes and developer usage rankings."
+      "definition": "Popular new models on OpenRouter, API price changes, and rankings of real developer usage."
     },
     {
       "slug": "amazon",
@@ -154,7 +154,7 @@
       "tags": [
         "Agents"
       ],
-      "definition": "AI agents that break a task down, call tools and get it done step by step: apps like Claude Code and Manus, agent frameworks and evals."
+      "definition": "Agents that split the work, call tools and finish the job, covering products such as Claude Code and Manus, plus frameworks and evals."
     },
     {
       "slug": "coding",
@@ -163,7 +163,7 @@
       "tags": [
         "Coding"
       ],
-      "definition": "Writing code with AI: coding assistants, vibe coding, code-model evals and how development work is changing."
+      "definition": "AI coding assistants, vibe-coding practice, code-model evals, and how software development is changing."
     },
     {
       "slug": "reasoning",
@@ -172,7 +172,7 @@
       "tags": [
         "Reasoning"
       ],
-      "definition": "Getting models to think before they answer: chain of thought, reasoning models, breakthroughs and disputes on math and logic evals."
+      "definition": "Reasoning models and chain-of-thought methods built to think before answering, plus breakthroughs and disputes on math and logic evals."
     },
     {
       "slug": "multimodal",
@@ -181,7 +181,7 @@
       "tags": [
         "Multimodal"
       ],
-      "definition": "Beyond text: understanding images, mixed image-and-text understanding, audio and video in and out, in models and products."
+      "definition": "Beyond text: image understanding, mixed image-and-text layout, and progress in audio and video input-output models and products."
     },
     {
       "slug": "image-gen",
@@ -190,7 +190,7 @@
       "tags": [
         "Image generation"
       ],
-      "definition": "Making and editing images with AI: text-to-image model updates, image editing and creative tools."
+      "definition": "Text-to-image model updates, retouching and image editing, and the main AI drawing tools."
     },
     {
       "slug": "video",
@@ -199,7 +199,7 @@
       "tags": [
         "Video"
       ],
-      "definition": "AI that makes and understands video: text-to-video models, editing tools and new ways of making film and video."
+      "definition": "Text-to-video models, AI video-editing tools, and new ways of making film and short video."
     },
     {
       "slug": "voice",
@@ -208,7 +208,7 @@
       "tags": [
         "Voice"
       ],
-      "definition": "AI voice and audio: speech synthesis, real-time voice conversation, music generation and audio understanding, in models and products."
+      "definition": "Models and products for speech synthesis, real-time voice conversation, music generation and audio understanding."
     },
     {
       "slug": "embodied",
@@ -217,7 +217,7 @@
       "tags": [
         "Embodied AI"
       ],
-      "definition": "AI in a robot's body: humanoid robots, robot foundation models and doing hands-on work in real environments."
+      "definition": "AI in a robot's body, covering humanoid robots, embodied foundation models and control in real scenes."
     },
     {
       "slug": "on-device",
@@ -226,7 +226,7 @@
       "tags": [
         "On-device"
       ],
-      "definition": "AI that runs right on phones, laptops and other devices: small models, tools for running models locally and on-device chips."
+      "definition": "Small models that run locally on phones and computers, offline runners, and progress on on-device chips."
     },
     {
       "slug": "open-source",
@@ -236,7 +236,7 @@
         "Open-source ecosystem",
         "Open source/Repo"
       ],
-      "definition": "Open-weight models you can download and run yourself, open-source frameworks and AI projects taking off on GitHub."
+      "definition": "Open-weight models you can download and deploy yourself, plus open-source frameworks and AI projects taking off on GitHub."
     },
     {
       "slug": "engineering",
@@ -245,7 +245,7 @@
       "tags": [
         "Deployment/Engineering"
       ],
-      "definition": "Making models run faster and cheaper: inference acceleration, memory and cost, serving and infrastructure choices."
+      "definition": "Engineering that makes large models faster and cheaper: inference acceleration, VRAM optimization, serving and infrastructure."
     },
     {
       "slug": "data-training",
@@ -254,7 +254,7 @@
       "tags": [
         "Data/Training"
       ],
-      "definition": "How large models are trained: building datasets, synthetic data, pre- and post-training methods, compute and training cost."
+      "definition": "Training methods and data engineering for large models: building datasets, synthetic data, pre-training, post-training and compute cost."
     },
     {
       "slug": "safety",
@@ -263,7 +263,7 @@
       "tags": [
         "Safety/Alignment"
       ],
-      "definition": "Keeping AI controllable, trustworthy and hard to misuse: jailbreaks and defenses, model behavior research, safety evals and governance frameworks."
+      "definition": "Safety research on keeping models controllable and hard to misuse: jailbreaks and defenses, model-behavior analysis, safety evals and governance frameworks."
     },
     {
       "slug": "mcp",
@@ -272,7 +272,7 @@
       "tags": [
         "MCP/Tool use"
       ],
-      "definition": "Connecting AI to outside software and data: the MCP protocol, function calling and tool integrations."
+      "definition": "The MCP protocol, tool calling (function calling) and ecosystem integrations that connect models to outside software and data."
     },
     {
       "slug": "model-releases",
@@ -281,7 +281,7 @@
       "tags": [
         "Model release"
       ],
-      "definition": "New models released, opened up and iterated: flagship updates, open weights, and capability and price changes."
+      "definition": "New model releases, open weights going live, and capability and price changes in the versions that matter."
     },
     {
       "slug": "product-updates",
@@ -290,7 +290,7 @@
       "tags": [
         "Product update"
       ],
-      "definition": "New features, redesigns and commercialization of AI products: what got better, pricier or finally usable."
+      "definition": "New features, redesigns and price changes in AI apps and tools: which products got easier to use, or more expensive."
     },
     {
       "slug": "papers",
@@ -299,7 +299,7 @@
       "tags": [
         "Paper/Research"
       ],
-      "definition": "AI papers and research worth reading: new architectures, training methods, capability measurement and theory."
+      "definition": "AI papers and results worth a close read, covering model architecture, training methods, capability evals and theoretical findings."
     },
     {
       "slug": "benchmarks",
@@ -308,7 +308,7 @@
       "tags": [
         "Eval/Benchmark"
       ],
-      "definition": "Which model is actually better: benchmark results, disputes over evaluation methods and leaderboard changes."
+      "definition": "Third-party eval scores for the major models, leaderboard moves, and disputes about the eval methods themselves."
     },
     {
       "slug": "tutorials",
@@ -317,7 +317,7 @@
       "tags": [
         "Tutorial/Practice"
       ],
-      "definition": "Hands-on material you can use right away: prompting tips, workflows, tool usage and lessons learned."
+      "definition": "Practical pieces you can use as soon as you start: how to write prompts, building workflows, using tools, and real lessons from what went wrong."
     },
     {
       "slug": "opinions",
@@ -326,7 +326,7 @@
       "tags": [
         "Expert view"
       ],
-      "definition": "What the industry's key people think: founder interviews, researcher debates and investor calls."
+      "definition": "What the industry's key people think and where they clash: founder interviews, researcher debates and calls from investors on the ground."
     },
     {
       "slug": "trends",
@@ -335,7 +335,7 @@
       "tags": [
         "Trend"
       ],
-      "definition": "What AI is changing: how people use AI, new capabilities emerging, and the impact on society and market structure."
+      "definition": "The changes AI is bringing: new ways of using it, capabilities just appearing, and the effect on the industry and society."
     },
     {
       "slug": "industry",
@@ -344,7 +344,7 @@
       "tags": [
         "Industry news"
       ],
-      "definition": "The big business news in AI: funding and M&A, people moves, partnerships and competition, policy and market changes."
+      "definition": "The big business events in AI: funding and M&A, senior people moves, and shifts in how the giants partner and compete."
     },
     {
       "slug": "policy",
@@ -353,7 +353,7 @@
       "tags": [
         "Policy/Regulation"
       ],
-      "definition": "AI policy, law and government oversight: legislation, export controls and global governance, including US federal and state action."
+      "definition": "Laws and legislation on AI in each country, export controls on compute and models, and moves in global governance, including US federal and state action."
     }
   ]
 }

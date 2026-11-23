@@ -74,6 +74,20 @@ export const TAG_SYNONYMS: Readonly<Record<string, string>> = {
   大佬观点: "Expert view", "评测/基准": "Eval/Benchmark", "安全/对齐": "Safety/Alignment", 行业动态: "Industry news", "政策/监管": "Policy/Regulation", "非AI/通用工具": "Non-AI/General tool", 其他: "Other",
 };
 
+/** Reader-facing tag labels. Slash forms become a short phrase; null hides the tag from readers (storage, the API and admin keep the original tag). */
+export const TAG_DISPLAY: Readonly<Record<string, string | null>> = {
+  "Paper/Research": "Paper",
+  "Open source/Repo": "Open source",
+  "Tutorial/Practice": "Tutorial",
+  "Eval/Benchmark": "Eval",
+  "Safety/Alignment": "Safety",
+  "Policy/Regulation": "Policy",
+  "Data/Training": "Data and training",
+  "Deployment/Engineering": "Engineering deployment",
+  "MCP/Tool use": "MCP and tool use",
+  "Non-AI/General tool": null,
+};
+
 // ── Companies and subjects ──────────────────────────────────────────────────────────────
 
 /**
