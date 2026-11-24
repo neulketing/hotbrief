@@ -65,6 +65,25 @@ test("writing and public reading agree about Chinese, including Japanese with ka
   assert.equal(isChineseBody({ language: "en", body_text: "An English article quoting 人工智能." }), false);
 });
 
+// Issue #478: an English body that merely links to 「简体中文」 was read as Chinese, so its translation was
+// skipped and no exit showed one. Long texts need a real share of Han; short strings keep the presence test.
+test("a few Han characters in a long English body do not make it Chinese", () => {
+  const english = "Let AI use your phone, fully offline. ".repeat(400);
+  for (const body_text of [english + "简体中文", "This article has been translated to Chinese 简体中文. " + english]) {
+    assert.equal(isChineseBody({ language: null, body_text }), false);
+    assert.equal(exportTranslation({ language: null, body_text, tr_html: "<p>译文</p>", tr_complete: true }), "<p>译文</p>");
+  }
+  assert.equal(isChineseBody({ language: null, body_text: "这是一段真正用中文写成的长正文，讲的是模型与智能体。".repeat(120) }), true);
+  // Chinese news full of product names and a link is about a quarter Han, and is still Chinese.
+  const news = "10 月 1 日消息，昨日推送 26H2 更新后，微软在官网公布了 Windows 11 ISO 下载镜像，支持全新安装与升级。下载地址：https://www.microsoft.com/en-us/software-download/windows11?utm_source=feed&utm_medium=rss 。Microsoft Windows Insider Program 同步更新 Release Preview Channel。";
+  assert.equal(isChineseBody({ language: null, body_text: news.repeat(2) }), true);
+  assert.equal(isChineseBody({ language: "en", body_text: "这是一段真正用中文写成的长正文。".repeat(120) }), false);
+  assert.equal(isChineseBody({ language: "zh", body_text: english }), true);
+  assert.equal(isChineseBody({ language: null, body_text: "これはテストの文章です。".repeat(300) }), false);
+  assert.equal(looksZh("BLA 开源发布"), true);
+  assert.equal(looksZh("Hello 世界"), true);
+});
+
 test("displayTag maps slash tags to clean labels, hides internal filter tags, and keeps ordinary tags", () => {
   assert.equal(displayTag("开源/仓库"), "开源");
   assert.equal(displayTag("部署/工程"), "工程部署");
