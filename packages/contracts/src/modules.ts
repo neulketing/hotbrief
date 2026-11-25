@@ -22,6 +22,8 @@ export interface ModulePage {
   admin?: true;
   /** An admin page's name in the back office's sidebar. */
   nav?: string;
+  /** Also served in English at /en/<path>: the page's reader-facing text is written in both languages (apps/web/app/lib/i18n.ts). */
+  en?: true;
 }
 
 /** Pages that share a layout route. */
@@ -40,6 +42,8 @@ export interface ModuleDeclaration {
   redirects?: RedirectRule[];
   /** Paths the api process answers; the web server and the internal router send them there. */
   apiPaths?: RegExp[];
+  /** Its site api answers (/api/site/…) that also answer in English, at /api/site/en/…: what its English pages read. */
+  englishApi?: RegExp[];
 }
 
 export function defineModule(module: ModuleDeclaration): ModuleDeclaration {

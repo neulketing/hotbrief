@@ -9,6 +9,7 @@ import { presentationAssertions, rawLoaderPaths } from "./lesson-checks.ts";
 import { clockViolationsByFile } from "./test-clock.ts";
 import { after, test } from "node:test";
 import { fontSizeViolations } from "./font-size.ts";
+import { routerLinkViolations, webTextViolations } from "./web-text.ts";
 import { closeDb, sql } from "@aihot/backend/db";
 
 after(closeDb);
@@ -75,6 +76,14 @@ test("packages never import the apps, and nothing below the admin imports it", (
   const found = violations([...sources("packages/backend/src"), ...sources("apps/worker")], (file, spec) =>
     !file.startsWith("packages/backend/src/admin/") && (backendPath(file, spec)?.startsWith("admin/") ?? false));
   assert.deepEqual(found, [], "admin/ is the top layer: move what others need to the folder that owns it");
+});
+
+test("editorial and event code can enqueue work without loading worker implementations", () => {
+  const found = violations([...sources(BACKEND + "/editorial"), ...sources(BACKEND + "/events")], (file, spec) => {
+    const target = backendPath(file, spec);
+    return !!target?.startsWith("jobs/") && target !== "jobs/queue.ts";
+  });
+  assert.deepEqual(found, [], "submit work through jobs/queue.ts; worker implementations depend on editorial and events");
 });
 
 // Public routes read through the public read faces; the rest are the reader's own writes (feedback) and
@@ -345,4 +354,15 @@ test("web code does not import motion or framer-motion", () => {
 
 test("web font sizes use the design scale", () => {
   assertNoViolations(fontSizeViolations());
+});
+
+// The English edition (/en/…): reader-facing text is written in both languages where it is used, so a page
+// never shows Chinese to an English reader or loses its English when the Chinese is edited (lib/i18n.ts).
+// Pages without an English edition are listed in web-text.ts CHINESE_ONLY with the reason.
+test("reader-facing web text has its English beside it", () => {
+  assertNoViolations(webTextViolations());
+});
+
+test("site links keep the page's language", () => {
+  assertNoViolations(routerLinkViolations());
 });
