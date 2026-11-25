@@ -127,7 +127,7 @@ API 가 아래 구조를 돌려준다고 합시다. `itemsPath` 는 배열을 �
 - 완전한 웹 주소가 이미 있으면 `{raw:url}` 을 씁니다. slug 만 있으면 `https://example.com/posts/{slug}` 처럼 쓸 수 있습니다. `{필드경로}` 는 필드 값을 인코딩하고, `{raw:필드경로}` 는 그대로 넣습니다. JSON 목록은 상대 주소를 절대 주소로 자동으로 바꾸지 않으니, 템플릿이 완전한 HTTP(S) 주소를 만들어야 합니다.
 - `summaryIsBody`: API 의 요약이 곧 전문이라고 확인했을 때 `true` 로 설정합니다. `summaryPaths` 로 얻은 텍스트를 본문으로 쓰고 원문 페이지를 다시 가져오지 않습니다.
 - 날짜는 시간대가 붙은 ISO 문자열로 돌려주는 것이 좋습니다. `2026-09-30 17:43:58` 처럼 시간대가 없는 시각은 웹 목록과 똑같이 `publishedAtUtcOffset` 으로 읽습니다(기본 `+08:00`). 숫자 타임스탬프는 `publishedAtUnit: "epoch_s"`(초) 또는 `"epoch_ms"`(밀리초)를 설정하고, `20261001` 같은 날짜는 `"yyyymmdd"` 를 설정합니다.
-- 제목이 없거나 링크를 만들 수 없는 항목은 건너뜁니다. 비어 있지 않은 배열이 하나도 매핑되지 않으면 `no items mapped (check title/url paths)` 오류가 납니다. 경로가 배열이 아니면 `items path did not resolve to an array` 오류가 납니다.
+- 제목이 없거나 링크를 만들 수 없는 항목은 건너뜁니다. 비어 있지 않은 배열이 하나도 매핑되지 않으면 `no items mapped (check title/url paths)` 오류가 납니다. 경로가 배열이 아니면 오류가 설정의 경로, 그 경로가 멈춘 단계, 그 단계에 있는 키를 알려 주고, 응답 본문에 `message`/`msg`/`error` 문자열이 있으면 그 원문도 덧붙입니다. 예: `items path data.list did not resolve to an array: found nothing at data (keys: total, rows)`.
 
 ### HTML/JSON 예시를 로컬에서 돌려 보기
 

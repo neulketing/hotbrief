@@ -5,6 +5,9 @@
 
 import type { Founder } from "@aihot/contracts/site-config";
 
+/** 영어판(/en/…)에서 이 사이트가 직접 쓰는 문구. 영어판을 두지 않으면 null 로 두고, 사이트는 한 언어판만 낸다. */
+export const ENGLISH = null;
+
 /**
  * 일간·주간·월간 브리핑이 나가는 시각(HH:mm). 일간은 이 시각 직전 24시간을 모으고, 주간은 매주 월요일, 월간은 매월 1일에 나간다.
  * 시계는 l10n/patches/ko.patch 를 적용하면 한국 시간(Asia/Seoul, UTC+9)이고, 적용하지 않으면 원본대로 베이징 시간(UTC+8)이다.

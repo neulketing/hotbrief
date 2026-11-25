@@ -5,6 +5,9 @@
 
 import type { Founder } from "@aihot/contracts/site-config";
 
+/** The copy this site writes itself for the original's English pages (/en/…). This edition is already English, so it stays null and the site has one language. */
+export const ENGLISH = null;
+
 /**
  * When the daily, weekly and monthly briefings come out (HH:mm). The daily covers the 24 hours before this time, the weekly comes
  * out on the Monday after each week, the monthly on the 1st. With l10n/patches/en-US.patch applied the site clock is UTC, so
