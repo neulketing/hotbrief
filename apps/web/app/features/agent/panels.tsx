@@ -1,7 +1,8 @@
 // The engine's ways in, one panel each: what it is for, the steps to connect, then the details folded away.
 // Addresses are the site's configured public address (`base`); what visitors copy carries the site's tag
 // (CopyTag) when it has one.
-import { Fragment, useState } from "react";
+import { Fragment, useRef, useState } from "react";
+import { useHeightTween, useSwapped } from "../../lib/motion";
 import { PUBLIC_INTERFACE_VERSION } from "@aihot/contracts/http-policy";
 import { MCP_TOOL_NAMES as T, MCP_TOOLS } from "@aihot/contracts/mcp";
 import { feedCategoryLabel, feedCategoryLabelIn, PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
@@ -39,9 +40,14 @@ const MCP_CLIENTS = [
 export function McpPanel(props: AgentPanelProps) {
   const t = useT();
   const locale = useLocale();
+  const tools = shownIn(locale, AGENT_PARTS.flatMap((p) => p.tools ?? []), (tool) => tool.does);
   const url = addressOf(props, "/api/mcp");
   const name = SITE.mcpPrefix;
   const [client, setClient] = useState<string>("claude");
+  // Another client: its setup replaces the last in place, the block easing to its height.
+  const picked = useSwapped(client);
+  const clientBox = useRef<HTMLDivElement>(null);
+  useHeightTween(clientBox, client);
   return (
     <>
       <PanelHead label={`MCP · ${V}`} title={t(`填一个地址，Agent 多出 ${mcpToolCount()} 个工具`, `Add one URL and your agent gets ${mcpToolCount()} new tools`)}>
@@ -54,10 +60,14 @@ export function McpPanel(props: AgentPanelProps) {
         </Step>
         <Step n={2} title={t("加到你的客户端", "Add it to your client")}>
           <PillTabs className="mt-3" size="xs" layoutId="agent-mcp-client" label={t("客户端", "Client")} active={client} onSelect={setClient} items={MCP_CLIENTS.map((c) => ({ key: c.key, label: t(c.label) }))} />
+          <div ref={clientBox}>
+          <div key={client} className={picked ? "anim-fade-in" : undefined}>
           {client === "claude" && <CodeBlock className="mb-0 mt-3" lang="bash" code={`claude mcp add --transport http ${name} '${url}'`} />}
           {client === "codex" && <CodeBlock className="mb-0 mt-3" lang="bash" code={`codex mcp add ${name} --url '${url}'`} />}
           {client === "json" && <CodeBlock className="mb-0 mt-3" title={t("Cursor、Cherry Studio 等用 JSON 配置的客户端", "Cursor, Cherry Studio and other clients set up with JSON")} lang="json" code={JSON.stringify({ mcpServers: { [name]: { type: "http", url } } }, null, 2)} />}
           {client === "other" && <p className="mt-3">{t(`在客户端的 MCP 或连接器设置里新建一项：名称填 ${name}，地址填上面的网址，认证选“无”，不要填 API Key。只支持本地命令的客户端，先用它自带的远程 MCP 代理。`, `In your client's MCP or connector settings, add a new entry: name it ${name}, paste the URL above, set authentication to "None", and leave the API key empty. If your client only runs local commands, go through its built-in remote MCP proxy.`)}</p>}
+          </div>
+          </div>
         </Step>
         <Step n={3} title={t("让 Agent 调一次", "Test it with your agent")}>
           <Ask text={t(`请调用 ${T.latest}，告诉我过去 24 小时最重要的${subjectAfter(" 5 条", "资讯")}，并附 ${SITE.name} 链接。`, `Call ${T.latest} with lang "en" and tell me the 5 most important ${SITE.subject} news stories of the past 24 hours, with ${SITE.name} links.`)} />
@@ -65,7 +75,7 @@ export function McpPanel(props: AgentPanelProps) {
         </Step>
       </Steps>
 
-      <Block title={t(`${mcpToolCount()} 个工具`, `${mcpToolCount()} tools`)}>
+      <Block title={t(`${mcpToolCount()} 个工具`, `${MCP_TOOLS.length + tools.length} tools available in English`)}>
         <Table
           head={[t("工具", "Tool"), t("能做什么", "What it does"), t("可以这样问", "Try asking")]}
           minWidth={600}
@@ -77,7 +87,7 @@ export function McpPanel(props: AgentPanelProps) {
             [<Mono>{T.daily}</Mono>, t(subjectAfter("最新或指定日期的", "日报"), `The latest ${SITE.subject} Daily, or the one for a given date`), t("给我今天的日报。", `Give me today's ${SITE.subject} Daily.`)],
             [<Mono>{T.weekly}</Mono>, t(subjectAfter("最新或指定一周的", "周报"), `The latest ${SITE.subject} Weekly, or the one for a given week`), t(`${subjectAfter("这周", "圈")}有哪些大事？`, `What were the big ${SITE.subject} stories this week?`)],
             [<Mono>{T.monthly}</Mono>, t(subjectAfter("最新或指定月份的", "月报"), `The latest ${SITE.subject} Monthly, or the one for a given month`), t(`${subjectAfter("上个月", "圈")}发生了什么？`, `What happened in ${SITE.subject} last month?`)],
-            ...shownIn(locale, AGENT_PARTS.flatMap((a) => a.tools ?? []), (x) => x.does).map((x) => [<Mono>{x.name}</Mono>, t(x.does), t(x.ask)]),
+            ...tools.map((x) => [<Mono>{x.name}</Mono>, t(x.does), t(x.ask)]),
           ]}
         />
       </Block>
@@ -189,6 +199,9 @@ export function ApiPanel(props: AgentPanelProps) {
   let pace = t(`内容多久变一次：新资讯全天陆续进来，精选每天变几次到几十次，日报${EDITION_WHEN.daily}、周报${EDITION_WHEN.weekly}、月报${EDITION_WHEN.monthly}（北京时间）各一期。`, `How often things change: new stories come in all day, top picks change from a few to dozens of times a day, and the Daily comes out ${WHEN_EN.daily}, the Weekly ${WHEN_EN.weekly} and the Monthly ${WHEN_EN.monthly}.`);
   if (ACCESS.ratePerMinute) pace += t(`同一个 IP 每分钟超过约 ${ACCESS.ratePerMinute} 次会收到 429，请按 Retry-After 等待，不要并发重试。`, ` More than about ${ACCESS.ratePerMinute} requests a minute from one IP get a 429: wait as Retry-After says, and don't retry in parallel.`);
   const [recipe, setRecipe] = useState<string>("latest");
+  const picked = useSwapped(recipe);
+  const recipeBox = useRef<HTMLDivElement>(null);
+  useHeightTween(recipeBox, recipe);
   const recipes = shownIn(locale, AGENT_PARTS.flatMap((a) => a.recipes ?? []), (r) => r.label);
   // English pages show the English answer: lang=en on any reader's address.
   const items = `${base}/api/v1/items?mode=selected&window=24h&limit=20${locale === "en" && ENGLISH ? "&lang=en" : ""}`;
@@ -224,7 +237,7 @@ export function ApiPanel(props: AgentPanelProps) {
             [<Mono>/api/v1/items</Mono>, t("精选或最近 7 天全部动态，可按分类、时间窗、关键词筛", "Top picks, or all news from the last 7 days; filter by category, time window or keyword"), t("最快 1 分钟一次", "At most once a minute")],
             { group: t("热点与事件", "Trending and stories") },
             [<Mono>/api/v1/hot-topics</Mono>, t("当前热点榜 Top 10", "The top 10 trending stories right now"), t("最快 1 分钟一次", "At most once a minute")],
-            [<Mono>{"/api/v1/stories/{publicId}"}</Mono>, t("一个事件的报道时间线、AI 综述和关联事件", "A story's coverage timeline, AI summary and related stories"), t("需要时", "When needed")],
+            [<Mono>{"/api/v1/stories/{publicId}"}</Mono>, t("一个事件的报道时间线、AI 综述和相关事件", "A story's coverage timeline, AI summary and related stories"), t("需要时", "When needed")],
             { group: t("日报", "Daily") },
             [<Mono>/api/v1/dailies/latest</Mono>, t("最新一期日报", "The latest Daily"), t(`${EDITION_WHEN.daily} 后一次`, `Once a day, after ${EDITION_TIMES.daily} (GMT+8)`)],
             [<Mono>{"/api/v1/dailies/{date}"}</Mono>, t("指定日期日报；撤稿会移除引用", "The Daily for a given date; retracted stories are removed from it"), t("缓存过期后须带 ETag 验证更新", "Once the cache expires, check for updates with the ETag")],
@@ -249,6 +262,8 @@ export function ApiPanel(props: AgentPanelProps) {
 
       <Block title={t("常见用法", "Common recipes")}>
         <PillTabs size="xs" layoutId="agent-api-recipe" label={t("用法", "Recipe")} active={recipe} onSelect={setRecipe} items={[...RECIPES, ...recipes].map((r) => ({ key: r.key, label: t(r.label) }))} />
+        <div ref={recipeBox}>
+        <div key={recipe} className={picked ? "anim-fade-in" : undefined}>
         {recipe === "latest" && (
           <>
             <CodeBlock className="mb-3 mt-3" lang="bash" code={t(`# 第一次：保存响应头里的 ETag\n${curl} -i '${items}'\n# 之后最快每分钟一次，带上 ETag；返回 304 就是没变化\n${curl} -i -H 'If-None-Match: <上次的 ETag>' '${items}'`, `# First time: save the ETag from the response headers\n${curl} -i '${items}'\n# After that, at most once a minute, with the ETag; a 304 means nothing changed\n${curl} -i -H 'If-None-Match: <last ETag>' '${items}'`)} />
@@ -262,6 +277,8 @@ export function ApiPanel(props: AgentPanelProps) {
           </>
         )}
         {recipes.map((r) => recipe === r.key && <r.Body key={r.key} base={base} curl={curl} />)}
+        </div>
+        </div>
       </Block>
 
       <Block title={t("出错了怎么办", "When something goes wrong")} id="agent-api-recovery">

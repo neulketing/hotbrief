@@ -37,14 +37,16 @@ test("pageMeta advertises only an explicitly supplied Markdown representation", 
   assert.ok(!pageMeta({ locale: "en", path: "/hot", markdown: "/hot.md" }).some(markdown));
 });
 
-test("an English page names its English address and language", () => {
-  const tags = pageMeta({ locale: "en", path: "/hot" });
+test("a published page names its own address and language", () => {
+  const locale = ENGLISH ? "en" : "zh";
+  const url = siteUrl() + (ENGLISH ? "/en/hot" : "/hot");
+  const tags = pageMeta({ locale, path: "/hot" });
   const find = (key: string, value: string) => tags.find((tag) => (tag as Record<string, unknown>)[key] === value) as Record<string, string> | undefined;
-  assert.equal(find("rel", "canonical")?.href, `${siteUrl()}/en/hot`);
-  assert.equal(find("property", "og:url")?.content, `${siteUrl()}/en/hot`);
-  assert.equal(find("property", "og:locale")?.content, "en_US");
+  assert.equal(find("rel", "canonical")?.href, url);
+  assert.equal(find("property", "og:url")?.content, url);
+  assert.equal(find("property", "og:locale")?.content, ENGLISH ? "en_US" : SITE.locale.replace("-", "_"));
   // A page without an English edition keeps its one address.
-  assert.equal((pageMeta({ locale: "en", path: "/changelog" }).find((tag) => (tag as Record<string, unknown>).rel === "canonical") as Record<string, string>).href, `${siteUrl()}/changelog`);
+  assert.equal((pageMeta({ locale: "en", path: "/privacy" }).find((tag) => (tag as Record<string, unknown>).rel === "canonical") as Record<string, string>).href, `${siteUrl()}/privacy`);
 });
 
 test("a page in both languages names both for search engines; an English page still in Chinese stays out of search", () => {
@@ -57,7 +59,7 @@ test("a page in both languages names both for search engines; an English page st
   }
   const both = [`${SITE.locale} ${siteUrl()}/hot`, `en ${siteUrl()}/en/hot`, `x-default ${siteUrl()}/hot`];
   for (const locale of ["zh", "en"] as const) assert.deepEqual(alternates(pageMeta({ locale, path: "/hot", title: "Trending" })), both, locale);
-  assert.deepEqual(alternates(pageMeta({ locale: "zh", path: "/changelog" })), [], "a page with no English edition names none");
+  assert.deepEqual(alternates(pageMeta({ locale: "zh", path: "/privacy" })), [], "a page with no English edition names none");
   assert.deepEqual(alternates(pageMeta({ locale: "zh", path: "/hot", noindex: true })), [], "a page out of search names none");
   const untranslated = pageMeta({ locale: "en", path: "/items/abc", title: "还没翻译的标题" });
   assert.match(robots(untranslated) ?? "", /^noindex/, "its words are not translated yet");

@@ -7,7 +7,7 @@ import {
 } from "@aihot/contracts/site";
 import { isCategoryKey, isChannelKey, sectionLabelIn, topicName } from "@aihot/contracts/taxonomy";
 import { SITE, subjectAfter, withSubject } from "@aihot/site";
-import { ENGLISH, needsEnglish } from "@aihot/contracts/english";
+import { ENGLISH, WAITING_ENGLISH_SECONDS, needsEnglish } from "@aihot/contracts/english";
 import { feedPath, hasEnglish, localizePath, ogPath, translator, type Locale, type Text } from "./i18n.ts";
 
 /**
@@ -79,6 +79,11 @@ export function filterParams(f: TimelineFilters) {
   return { channel: f.channel === "all" ? null : f.channel, category: f.category, tag: f.tag };
 }
 
+/** What a search started from a feed keeps of it: its 一手 / category filter (精选, 全部动态 and the phone search alike). */
+export function filterKeep(f: Pick<TimelineFilters, "channel" | "category">): Record<string, string | null> {
+  return { channel: f.channel === "all" ? null : f.channel, category: f.category };
+}
+
 /** Links in shared feed HTML carry only the destination's filters. Pagination starts over unless requested. */
 export function feedListPath(base: string, params: URLSearchParams, changes: Partial<Record<"q" | "tab" | "page" | "tag" | "category" | "channel", string | number | null>>) {
   const q = base === "/all" ? params.get("q")?.trim().slice(0, 200) : null;
@@ -96,6 +101,15 @@ export function hasFeedFilters(filters: TimelineFilters | undefined): boolean {
 /** "Title · Site". */
 export function titled(title: string): string {
   return `${title} · ${SITE.name}`;
+}
+
+/** The temporary noindex ends when the English title arrives. */
+function waitingForTitle(locale: Locale, title?: string | null) {
+  return locale === "en" && needsEnglish(title);
+}
+
+export function titleCacheSeconds(seconds: number, locale: Locale, indexableTitle: string | null) {
+  return waitingForTitle(locale, indexableTitle) ? Math.min(seconds, WAITING_ENGLISH_SECONDS) : seconds;
 }
 
 export function pageMeta(input: PageMetaInput): MetaDescriptor[] {
@@ -127,7 +141,7 @@ export function pageMeta(input: PageMetaInput): MetaDescriptor[] {
   // The Markdown versions are the Chinese pages'.
   if (input.markdown && input.locale === "zh") tags.push({ tagName: "link", rel: "alternate", type: "text/markdown", href: `${base}${input.markdown}` });
   // An English page whose own title is still Chinese (its words not translated yet) stays out of search until they are.
-  const noindex = input.noindex || (input.locale === "en" && needsEnglish(input.title));
+  const noindex = input.noindex || waitingForTitle(input.locale, input.title);
   if (noindex) tags.push({ name: "robots", content: input.nofollow ? "noindex, nofollow" : "noindex, follow" });
   else {
     // A page in both languages names both, the Chinese as the default, so search engines show readers their own.
@@ -302,8 +316,11 @@ export function archiveLd(path: string, name: string, entries: Array<{ path: str
 export function reportTitle(report: ReportDetail, locale: Locale): string {
   // Without a lead, the first highlight the issue carries as an entry heads it; the reports a thin daily's
   // highlights were filled with are not its news.
-  const entries = new Set(report.sections.flatMap((s) => s.items.map((i) => i.itemId)));
-  const lead = report.lead?.title.trim() || report.highlights.find((item) => item.available && entries.has(item.itemId))?.title.trim();
+  let lead = report.lead?.title.trim();
+  if (!lead) {
+    const entries = new Set(report.sections.flatMap((s) => s.items.map((i) => i.itemId)));
+    lead = report.highlights.find((item) => item.available && entries.has(item.itemId))?.title.trim();
+  }
   const t = translator(locale);
   const name = t(
     `${withSubject(REPORT_NAMES[report.kind])}｜${reportDateLabel(report.kind, report.key)}`,

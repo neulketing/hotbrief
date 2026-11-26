@@ -14,12 +14,12 @@ import { Nameplate } from "../features/report/Nameplate";
 import type { Screen } from "../components/shell/screens";
 import { apiIn, L, localeOf, translator, useLocale, useT } from "../lib/i18n";
 
-export const handle: Screen = { tab: "daily", name: L("往期", "Past issues") };
+export const handle: Screen = { tab: "daily", name: L("合订本", "Archive") };
 export { pageHeaders as headers } from "../lib/api.server";
 export const { clientLoader, shouldRevalidate } = pageReuse<typeof loader>();
 
 export async function loader({ request }: { request: Request }) {
-  const { items: index } = await apiGet<ReportIndexResponse>(apiIn("/api/site/reports/daily", localeOf(pagePathname(request))), { signal: request.signal });
+  const { items: index } = await apiGet<ReportIndexResponse>(apiIn("/reports/daily", localeOf(pagePathname(request))), { signal: request.signal });
   return cachedPage(600, { index, today: beijingDate(Date.now()) });
 }
 

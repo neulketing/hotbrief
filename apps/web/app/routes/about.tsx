@@ -15,6 +15,7 @@ import { SignalRiver, type RiverSource } from "../features/about/SignalRiver";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
 import { Link } from "../lib/link";
+import { useSwapped } from "../lib/motion";
 import { apiIn, L, localeOf, translator, useLocale, useT, type Text, type Translate } from "../lib/i18n";
 
 export const handle: Screen = { tab: "me", name: L("关于", "About") };
@@ -24,7 +25,7 @@ export const { clientLoader, shouldRevalidate } = pageReuse<typeof loader>();
 export async function loader({ request }: { request: Request }) {
   const [contact, stats] = await Promise.all([
     apiGet<SiteContact>("/api/site/contact", { signal: request.signal }).catch(() => null),
-    apiGet<SiteStats>(apiIn("/api/site/stats", localeOf(pagePathname(request))), { signal: request.signal }).catch(() => null),
+    apiGet<SiteStats>(apiIn("/stats", localeOf(pagePathname(request))), { signal: request.signal }).catch(() => null),
   ]);
   return cachedPage(300, { contact, stats });
 }
@@ -197,9 +198,8 @@ function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; con
                 </Link>
                 告诉我。
               </>,
-              // The changelog is written for Chinese readers only: English leaves it out.
               <>
-                It keeps getting better. Have an idea or hit a problem? Tell me on the{" "}
+                You can follow what’s changed in the <Link viewTransition to="/changelog" className="text-accent hover:underline">changelog</Link>. Have an idea or hit a problem? Tell me on the{" "}
                 <Link viewTransition to="/feedback" className="text-accent hover:underline">
                   feedback page
                 </Link>
@@ -222,12 +222,15 @@ function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; con
 /** The latest 精选 under the river's paper; it moves on each time an item reaches the paper. */
 function Latest({ item, className = "" }: { item: SiteStats["latest"][number] | undefined; className?: string }) {
   const t = useT();
+  // The first is there with the page; each one after it rises in where the last one was.
+  const moved = useSwapped(item?.id ?? null);
   if (!item) return null;
   return (
     <IntentLink viewTransition to={`/items/${item.id}`} className={`group block ${className}`}>
       <span className="text-ui-caption-sm font-semibold tracking-[0.2em] text-accent">{t("最近精选", "Latest top pick")}</span>
-      <span key={item.id} className="animate-fade-up mt-1.5 block">
-        <span className="line-clamp-2 text-ui-label-lg font-semibold leading-[1.55] text-ink transition-colors group-hover:text-accent">{item.title}</span>
+      <span key={item.id} className={`mt-1.5 block ${moved ? "animate-fade-up" : ""}`}>
+        {/* Two lines held whatever the title's length, so what follows does not move as the titles change. */}
+        <span className="line-clamp-2 min-h-[3.1em] text-ui-label-lg font-semibold leading-[1.55] text-ink transition-colors group-hover:text-accent">{item.title}</span>
         <span className="mt-1 block truncate text-ui-caption text-ink-4">{item.source}</span>
       </span>
     </IntentLink>

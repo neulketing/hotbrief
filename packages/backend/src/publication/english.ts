@@ -1,3 +1,4 @@
+import { localizePath } from "@aihot/contracts/reader-pages";
 // The English edition's answers (/api/site/en/…, only where the site has an English edition): the same answers
 // as the Chinese ones, with each Chinese text the site wrote (titles, summaries, reasons, event digests, report
 // paragraphs, source names) replaced by its English. The worker (editorial/english.ts) translates the Chinese
@@ -7,7 +8,7 @@
 // Each answer's overlay runs twice: once to gather the texts it shows, once to put their English in. The worker
 // gathers through the same overlays, so what it translates is what the pages show.
 import type {
-  FeedItemSummary, GroupReportsResponse, HotEntryView, HotParticipant, HotResponse, HotStripEntry, ItemAvailability,
+  ChangelogResponse, FeedItemSummary, GroupReportsResponse, HotEntryView, HotParticipant, HotResponse, HotStripEntry, ItemAvailability,
   PoolResponse, ReportCitation, ReportDetail, ReportIndexResponse, ReportLatestPage, ReportNavigationResponse,
   SearchSuggestions, SiteItemDetail, SiteStats, SourceRef, StoryDetail, StoryFollowupsResponse, StoryReportView, TimelineResponse,
   TopicGroup, TopicLink, TopicPage, TopicSummary, TopicsResponse,
@@ -116,7 +117,7 @@ export async function textsIn<T>(value: T, overlay: Overlay<T>): Promise<WantedT
  * string under a `names` key is a name; nothing under a `keep` key changes (data matched as written, like search aliases).
  * A short line without sentence punctuation reads as a headline (labels, titles), anything longer as running text.
  */
-export function everyText<T>(opts: { keep?: readonly string[]; names?: readonly string[] } = {}): Overlay<T> {
+export function everyText<T>(opts: { keep?: readonly string[]; names?: readonly string[] } = {}): (value: T, c: Copy) => T {
   const keep = new Set(opts.keep ?? []);
   const names = new Set(opts.names ?? []);
   const kindOf = (key: string, text: string): CopyKind => (names.has(key) ? "name" : text.length <= 40 && !/[。！？；]/.test(text) ? "headline" : "text");
@@ -132,6 +133,18 @@ export function everyText<T>(opts: { keep?: readonly string[]; names?: readonly 
   };
   return (value, c) => walk(value, c, "") as T;
 }
+
+/** The entry kind is a filter value. The optional illustrated feature carries the site's own text. */
+const featureCopy = everyText<unknown>();
+export const changelog: Overlay<ChangelogResponse> = (data, c) => ({
+  ...data,
+  releases: data.releases.map(r => ({
+    ...r,
+    title: c.one("headline", r.title),
+    body: r.body.map(line => line.startsWith("- ") ? "- " + c.one("text", line.slice(2)) : c.one("text", line)),
+    ...(r.feature ? { feature: featureCopy(r.feature, c) } : {}),
+  })),
+});
 
 /** Whether the publication `alias` may still show its original: not withdrawn, its original not withheld. */
 export const originalShown = (alias: string) => sql`(${sql(alias)}.visibility <> 'withdrawn' AND NOT ${sql(alias)}.suppress_original)`;
@@ -488,8 +501,6 @@ export const v1PeriodIndex: Overlay<Awaited<ReturnType<typeof v1Periods>>> = (r,
   ...r, items: r.items.map((e) => ({ ...e, headline: c.one("headline", e.headline) })),
 });
 
-/** The site's pages a v1 answer links to that have an English edition, and its own v1 addresses. */
-const PAGE_LINK = new RegExp(`^(${siteUrl("").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})/(items|story|daily|weekly|monthly)(?=[/?#]|$)`);
 const LINK_KEYS = new Set(["aihot", "story", "api", "url", "link"]);
 
 /**
@@ -501,8 +512,9 @@ export function englishLinks<T>(value: T): T {
   const walk = (v: unknown, key: string): unknown => {
     if (typeof v === "string") {
       if (!LINK_KEYS.has(key)) return v;
-      if (PAGE_LINK.test(v)) return v.replace(PAGE_LINK, "$1/en/$2");
-      return v.startsWith(api) ? `${v}${v.includes("?") ? "&" : "?"}lang=en` : v;
+      if (v.startsWith(api)) return `${v}${v.includes("?") ? "&" : "?"}lang=en`;
+      const base = siteUrl("");
+      return v.startsWith(base + "/") ? base + localizePath(v.slice(base.length), "en") : v;
     }
     if (Array.isArray(v)) return v.map((x) => walk(x, key));
     if (v instanceof Map) return new Map([...v].map(([k, x]) => [k, walk(x, key)]));
