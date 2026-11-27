@@ -1,9 +1,9 @@
+import { TopicLinks } from "../components/ui/TopicLinks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { IntentLink } from "../components/ui/IntentLink";
 import { useLoaderData, useLocation } from "react-router";
 import type { Route } from "./+types/story";
 import { STORY_INDEX_MIN_SOURCES, type StoryDetail, type StoryReportView } from "@aihot/contracts/site";
-import { topicName } from "@aihot/contracts/taxonomy";
 import { SITE } from "@aihot/site";
 import { linkMentions } from "@aihot/contracts/mentions";
 import { addressRuns } from "@aihot/contracts/addresses";
@@ -74,8 +74,6 @@ const STATUS = {
 // Section anchors keep the old page's ids so shared links still land in the right place.
 const SECTIONS = { overview: "event-overview", reports: "event-reports", heat: "event-heat" } as const;
 
-const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
-
 /** A main-column card: 17px title, 24px padding. */
 function Panel({ id, title, sub, right, children, className = "" }: { id?: string; title: ReactNode; sub?: ReactNode; right?: ReactNode; children: ReactNode; className?: string }) {
   return (
@@ -112,7 +110,7 @@ function TimelineRow({ r }: { r: StoryReportView }) {
   const [clamped, setClamped] = useState(false);
   const ref = useRef<HTMLParagraphElement>(null);
   // Against two of its lines, not the box's height, which a fold or unfold under way is still changing.
-  useIsoLayoutEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current;
     if (el && !open) setClamped(el.scrollHeight > 2 * parseFloat(getComputedStyle(el).lineHeight) + 1);
   }, [r.summary, open]);
@@ -480,11 +478,7 @@ export default function StoryPage() {
           {story.topics.length > 0 && (
             <RailCard title={t("主题", "Topics")}>
               <div className="flex flex-wrap gap-1.5 touch:gap-y-4.5">
-                {story.topics.map((topic) => (
-                  <Link viewTransition key={topic.slug} to={`/topics/${topic.slug}`} className="chip">
-                    {topicName(topic.slug, topic.name, locale)}
-                  </Link>
-                ))}
+                <TopicLinks topics={story.topics} />
               </div>
             </RailCard>
           )}

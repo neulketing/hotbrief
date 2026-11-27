@@ -7,7 +7,7 @@
 // (a body written in Chinese, none).
 import { inLanguage, L, type Locale } from "@aihot/contracts/i18n";
 import { ENGLISH, needsEnglish } from "@aihot/contracts/english";
-import { REPORT_NAMES_EN } from "@aihot/contracts/site";
+import { REPORT_NAMES, REPORT_NAMES_EN } from "@aihot/contracts/site";
 import { feedCategoryLabelIn, PUBLIC_API_CATEGORY_KEYS, toPublicApiCategory, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
 import { EDITION_WHEN, REPORTS, SITE, subjectAfter } from "@aihot/site";
 import { config } from "../config.ts";
@@ -27,16 +27,6 @@ import { siteUrl } from "./links.ts";
 
 /** A feed's language: Chinese at /feed…, English at /en/feed… (on a site with an English edition). */
 export type FeedLanguage = Locale;
-
-interface FeedMeta {
-  id: string;
-  path: string;
-  title: string;
-  description: string;
-  homePath: string;
-  pollHintMinutes: number;
-  edgeCacheSeconds: number;
-}
 
 const ITEMS_KEPT = 50;
 const ISSUES_KEPT: Record<ReportKind, number> = { daily: 30, weekly: 12, monthly: 12 };
@@ -69,7 +59,7 @@ const FEEDS = {
   },
   "daily": {
     path: "/feed/daily.xml", homePath: "/daily", pollHintMinutes: 30,
-    title: L(`${SITE.name} 日报`, `${SITE.name} ${REPORT_NAMES_EN.daily}`),
+    title: L(`${SITE.name} ${REPORT_NAMES.daily}`, `${SITE.name} ${REPORT_NAMES_EN.daily}`),
     description: L(
       `${SITE.name} ${EDITION_WHEN.daily}（北京时间）发布的精编日报，保留最近 ${ISSUES_KEPT.daily} 期。`,
       `${SITE.name}'s daily briefing, out ${when.daily}; the last ${ISSUES_KEPT.daily} issues.`,
@@ -77,7 +67,7 @@ const FEEDS = {
   },
   "weekly": {
     path: "/feed/weekly.xml", homePath: "/weekly", pollHintMinutes: 180,
-    title: L(`${SITE.name} 周报`, `${SITE.name} ${REPORT_NAMES_EN.weekly}`),
+    title: L(`${SITE.name} ${REPORT_NAMES.weekly}`, `${SITE.name} ${REPORT_NAMES_EN.weekly}`),
     description: L(
       `${SITE.name} ${EDITION_WHEN.weekly}（北京时间）发布的周报：整理自上周日报的${REPORTS.entry.noun}，按栏目归类并附总述，保留最近 ${ISSUES_KEPT.weekly} 期。`,
       `${SITE.name}'s weekly roundup, out ${when.weekly}: last week's daily stories by section, with an overview; the last ${ISSUES_KEPT.weekly} issues.`,
@@ -85,7 +75,7 @@ const FEEDS = {
   },
   "monthly": {
     path: "/feed/monthly.xml", homePath: "/monthly", pollHintMinutes: 360,
-    title: L(`${SITE.name} 月报`, `${SITE.name} ${REPORT_NAMES_EN.monthly}`),
+    title: L(`${SITE.name} ${REPORT_NAMES.monthly}`, `${SITE.name} ${REPORT_NAMES_EN.monthly}`),
     description: L(
       `${SITE.name} ${EDITION_WHEN.monthly}（北京时间）发布的月报：整理自上月日报的${REPORTS.entry.noun}，按栏目归类并附总述，保留最近 ${ISSUES_KEPT.monthly} 期。`,
       `${SITE.name}'s monthly review, out ${when.monthly}: last month's daily stories by section, with an overview; the last ${ISSUES_KEPT.monthly} issues.`,
@@ -94,18 +84,13 @@ const FEEDS = {
 };
 
 /** A category feed inherits the metadata of the feed it narrows. */
-export function feedMeta(id: ItemFeedKind | ReportKind, lang: FeedLanguage = "zh"): FeedMeta {
+export function feedMeta(id: ItemFeedKind | ReportKind, lang: FeedLanguage = "zh") {
   const meta = FEEDS[id];
   return {
-    id, path: inLanguage(meta.path, lang), homePath: inLanguage(meta.homePath, lang),
+    path: inLanguage(meta.path, lang), homePath: inLanguage(meta.homePath, lang),
     title: meta.title[lang], description: meta.description[lang],
-    pollHintMinutes: meta.pollHintMinutes, edgeCacheSeconds: 300,
+    pollHintMinutes: meta.pollHintMinutes,
   };
-}
-
-export function feedCacheControl(id: ItemFeedKind | ReportKind): string {
-  const m = feedMeta(id);
-  return `public, max-age=${m.edgeCacheSeconds}, s-maxage=${m.edgeCacheSeconds}, must-revalidate`;
 }
 
 /** RSS <author> needs an address: a no-reply one on the site's own domain. */
@@ -265,13 +250,10 @@ export async function itemFeed(kind: ItemFeedKind, category: PublicApiCategoryKe
   return channel(meta, items, lang);
 }
 
-const ISSUE_NAME: Record<ReportKind, string> = { daily: "日报", weekly: "周报", monthly: "月报" };
-/** Issues each report feed keeps: a month of dailies, a quarter of weeklies, a year of monthlies. */
-
 /** One issue: its headline, its lead (a weekly's or monthly's overview) and its contents, each entry linking to its page. */
 function issueXml(kind: ReportKind, r: FeedIssue, lang: FeedLanguage): string {
   const url = siteUrl(inLanguage(`/${kind}/${r.key}`, lang));
-  const name = `${SITE.name} ${lang === "en" ? REPORT_NAMES_EN[kind] : ISSUE_NAME[kind]}`;
+  const name = `${SITE.name} ${lang === "en" ? REPORT_NAMES_EN[kind] : REPORT_NAMES[kind]}`;
   const title = r.headline ? `${name} · ${r.key} — ${r.headline}` : `${name} · ${r.key}`;
   const link = (id: string) => siteUrl(inLanguage(`/items/${id}`, lang));
   const contents = r.sections.map((s) => `<p><strong>${escapeXml(s.label)}</strong></p>\n<ul>${s.items.map((i) => `<li><a href="${escapeXml(link(i.id))}">${escapeXml(i.title)}</a></li>`).join("")}</ul>`);

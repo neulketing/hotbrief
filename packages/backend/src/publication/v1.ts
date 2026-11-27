@@ -1,11 +1,11 @@
 // v1 items and the selected sync (snapshot + changes), read from the same public read layer.
-import type { PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
+import { ARTICLE_ID_PATTERN, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
 import { sql, type Db } from "../db.ts";
 import { decodeCursor, encodeCursor, InvalidCursorError, queryBinding } from "../lib/cursor.ts";
 import { newShortId } from "../lib/ids.ts";
 import { publicCategoryCondition, API_ITEM_COLUMNS, API_ITEM_FROM, rowToV1, type V1ItemPayload, type ApiItemRow } from "./items.ts";
 import { browsedCondition, listedCondition, seatedCondition } from "./scope.ts";
-import { publicMatchCondition, searchTerms, translatedSearch, withSearchCapacity } from "./pool.ts";
+import { publicMatchCondition, searchTerms, withSearchCapacity } from "./pool.ts";
 import { sharedSearch } from "../lib/cache.ts";
 
 export interface V1ItemsQuery {
@@ -41,7 +41,7 @@ async function queryItems(query: V1ItemsQuery, now: Date): Promise<V1ItemsResult
   if (query.cursor) {
     const c = decodeCursor<{ a: number; i: string; c: string }>("it3", query.cursor);
     if (c.c !== binding || !Number.isSafeInteger(c.a) || !Number.isFinite(new Date(c.a).getTime())
-      || typeof c.i !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(c.i)) throw new InvalidCursorError("cursor does not belong to this query");
+      || typeof c.i !== "string" || !ARTICLE_ID_PATTERN.test(c.i)) throw new InvalidCursorError("cursor does not belong to this query");
     // The rolling window slid past the anchor: tell the client instead of returning an empty page.
     if (c.a < windowStart.getTime()) throw new InvalidCursorError("the rolling window moved past this cursor");
     after = { a: c.a, i: c.i };
@@ -49,11 +49,9 @@ async function queryItems(query: V1ItemsQuery, now: Date): Promise<V1ItemsResult
   const scope = query.mode === "selected" ? seatedCondition(now) : query.q ? listedCondition(now) : browsedCondition(now);
   const terms = query.q ? searchTerms(query.q) : [];
 
-  const copies = translatedSearch(terms);
   const run = (db: Db) => db<(ApiItemRow & { sort_at: Date })[]>`
-    ${copies ? sql`WITH ${copies}` : sql``}
     SELECT ${API_ITEM_COLUMNS}, ${sortCol} AS sort_at ${API_ITEM_FROM}
-    WHERE ${scope} ${publicCategoryCondition(query.category)} ${publicMatchCondition(terms, copies)}
+    WHERE ${scope} ${publicCategoryCondition(query.category)} ${publicMatchCondition(terms)}
       AND ${sortCol} >= ${windowStart} AND ${sortCol} <= ${now}
       ${after ? sql`AND (${sortCol}, p.article_id) < (${new Date(after.a)}, ${after.i})` : sql``}
     ORDER BY ${sortCol} DESC, p.article_id DESC
@@ -140,7 +138,7 @@ export async function selectedSnapshot(q: SnapshotQuery, now = new Date()) {
       throw new SnapshotRequiredError("unreadable snapshot page token");
     }
     if (p.k !== "page" || p.e !== epoch || (p.f !== "default" && p.f !== "minimal") || !isWatermark(p.w)
-      || typeof p.a !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(p.a)
+      || typeof p.a !== "string" || !ARTICLE_ID_PATTERN.test(p.a)
       || typeof p.t !== "string" || !Number.isFinite(Date.parse(p.t))) {
       throw new SnapshotRequiredError("page token does not match this snapshot");
     }
