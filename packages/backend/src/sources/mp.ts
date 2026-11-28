@@ -2,7 +2,8 @@
 // article bodies; every enabled account is checked once per source interval.
 import { sql } from "../db.ts";
 import { materialIdentityForUrl, upsertMaterial } from "../content/materials.ts";
-import { enqueue, QUEUES, shutdownSignal } from "../jobs/queue.ts";
+import { enqueue, QUEUES } from "../jobs/queue.ts";
+import { shutdownSignal } from "../lib/shutdown.ts";
 import { runOwner } from "../jobs/runs.ts";
 import { queueProcessing } from "../jobs/content.ts";
 import { stripTags } from "../lib/text.ts";
@@ -100,7 +101,7 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
       // A body fetched again arrives as a new revision (analysed again); stop retrying it.
       if (known) await sql`UPDATE articles SET raw = raw #- '{dajiala,bodyRetry}' WHERE id = ${known.id}`;
       if (res.created) created += 1;
-      if (res.created || res.revised || res.processingNeeded) await queueProcessing(res.articleId);
+      if (res.processingNeeded) await queueProcessing(res.articleId);
     }
     const cursor = { ...(source.cursor ?? {}), lastCheckedAt: new Date().toISOString(), lastPostTime: posts[0]?.post_time ?? source.cursor?.lastPostTime ?? null, remainMoney: history.remainMoney };
     await sql.begin(async tx => {

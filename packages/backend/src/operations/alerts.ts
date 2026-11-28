@@ -4,6 +4,8 @@
 //   today — money at risk or only the owner can act: sent at once, repeated at most daily, recovery reported.
 //   later — other follow-ups: one 09:00 list a day for the agent (the owner's only without one). A source's follow-up is
 //           closed on its own: a fix removes it, and one judged not worth fixing is closed with a reason.
+// A problem that turns more urgent is told at once. One that comes and goes (Finding.settles) recovers only after
+// staying gone that long; back sooner, it is the same incident and nothing new is sent.
 // A finding with agentOnly is still now or today, but it only wakes the agent: nothing is sent when it
 // opens, nothing is sent when it clears, and it stays off the 09:00 digest.
 // With an agent taking the alerts (notify/agent.ts), a now or today problem that is not the owner's own
@@ -13,15 +15,17 @@
 // woken for what is the owner's alone (owner "only" or "private"). While the channel to the agent fails, the owner hears everything again.
 // The shared hub owns serial execution and retry; accepted events are never dispatched again here.
 // Delivery goes through sendAlert (alert webhook or ops chat, internal-chat fallback; off unless FEISHU_INTERNAL_ENABLED).
+import { collectionEnabled, modelCallsEnabled } from "../config.ts";
 import { randomUUID } from "node:crypto";
 import { addDays, beijingAt, beijingDate, beijingDay, beijingStamp, isValidDate } from "@aihot/contracts/time";
 import { ALERTS, EDITION_TIMES } from "@aihot/site";
 import { audit } from "../audit.ts";
 import { sql } from "../db.ts";
 import { agentConfigured, agentTransportFindings, flushAgentEvents, handoffs, wakeAgent, wakeDigest } from "../notify/agent.ts";
-import { duration, formatAlert, formatRecovery, formatReturn, sendAlert, type Finding, type FollowUp, type Level } from "../notify/feishu.ts";
+import { duration, formatAlert, formatRecovery, formatReturn, type Finding, type FollowUp, type Level } from "../lib/alerts.ts";
+import { sendAlert } from "../notify/feishu.ts";
 import { stepsOnService } from "../editorial/models.ts";
-import { backupConfigured } from "./backup.ts";
+import { backupConfigured, lastBackupStatus } from "./backup.ts";
 import { GROUPING_WARN_AFTER_MS, waitingSelectedNews } from "./grouping.ts";
 import { upstreamFindings } from "../media/upstream.ts";
 import { serverModules } from "../modules.ts";
@@ -37,10 +41,12 @@ const HANDED_MS: Record<Exclude<Level, "later">, number> = { now: 3600_000, toda
 /** The handoff that tells the owner a problem keeps coming back, counted over a day; told at most once a day. */
 const RETURNS = 3;
 const DAY_MS = 86_400_000;
+const LEVEL_RANK: Record<Level, number> = { later: 0, today: 1, now: 2 };
+/** An open problem told at one level that now needs a more urgent one (a provider's fault turning into the site's own). */
+const escalated = (open: AlertEntry, f: Finding) => !!open.level && LEVEL_RANK[f.level] > LEVEL_RANK[open.level];
 
-// Valves default off: read at call time, only an explicit "true" turns them on.
-const collecting = () => process.env.COLLECT_ENABLED === "true";
-const modelsOn = () => process.env.MODEL_CALLS_ENABLED === "true";
+// Read at call time: only an explicit "true" enables model alerts.
+const modelsOn = modelCallsEnabled;
 /**
  * How long the site may go without a new article before it counts as stalled (ALERT_QUIET_MINUTES, else
  * the site's own setting; small source lists are quieter), and how long while editorial fetches keep
@@ -100,7 +106,7 @@ function withoutCoveredFindings(findings: FindingWithCoverage[]): Finding[] {
 // Content flow, judged by outcome: whatever broke (worker, egress proxy, models, queues), readers see
 // a site that stops changing. Its persisted backlog survives worker restarts and paused valves.
 async function contentCollection(now: number, open: AlertState): Promise<Finding[]> {
-  if (!collecting() && !open["content.collect"]) return [];
+  if (!collectionEnabled() && !open["content.collect"]) return [];
   const [last] = await sql<{ at: Date | null }[]>`SELECT max(a.discovered_at) AS at FROM articles a
     JOIN sources s ON s.id = a.source_id WHERE s.participation_mode = 'editorial' AND a.discovered_at > now() - interval '1 day'`;
   const quietFor = last?.at ? now - last.at.getTime() : Infinity;
@@ -144,10 +150,16 @@ async function contentCollection(now: number, open: AlertState): Promise<Finding
  */
 const FAILING_SHARE = 0.15;
 const FAILING_SOURCES = 50;
+/**
+ * A provider's outage comes and goes: 2026-11-21..26 SocialData's alert opened and recovered 15 times (37
+ * messages; on 11-24 twelve), the share of failing sources swinging around the threshold. Back within three
+ * hours it is the same outage; replayed on those six days the owner would have had about 10 messages.
+ */
+const PROVIDER_OUTAGE_SETTLES_MS = 3 * 3600_000;
 const PROVIDER_ANSWER = "^([a-z_]+) HTTP 5[0-9]{2}:";
 
 async function sourcesFailing(now: number, open: AlertState): Promise<FindingWithCoverage[]> {
-  if (!collecting() && !open["content.fetch"]) return [];
+  if (!collectionEnabled() && !open["content.fetch"]) return [];
   const latest = sql`SELECT s.id, r.status, r.error, r.started_at FROM sources s CROSS JOIN LATERAL (
       SELECT status, error, started_at FROM fetch_runs f
       WHERE f.source_id = s.id AND f.status IN ('ok', 'failed') AND f.started_at <= ${new Date(now)}
@@ -189,6 +201,7 @@ async function sourcesFailing(now: number, open: AlertState): Promise<FindingWit
     action: "不用处理，是对方的故障；恢复后会再发一条通知",
     detail,
     since,
+    settles: PROVIDER_OUTAGE_SETTLES_MS,
     // The provider alert already covers these failures. Other errors and other problems on the same
     // source still need their own follow-up (2026-11-23: 55 copies of a single SocialData outage).
     coveredSourceFailures: answered.map(id => `sources.failing.${id}`),
@@ -196,7 +209,7 @@ async function sourcesFailing(now: number, open: AlertState): Promise<FindingWit
 }
 
 /** Processing is checked while collection and models run, and while either of its incidents is open. */
-const watchingProcessing = (open: AlertState) => (collecting() && modelsOn()) || !!open["content.grouping"] || !!open["content.process"];
+const watchingProcessing = (open: AlertState) => (collectionEnabled() && modelsOn()) || !!open["content.grouping"] || !!open["content.process"];
 
 async function selectedGrouping(now: number, open: AlertState): Promise<Finding[]> {
   if (!watchingProcessing(open)) return [];
@@ -278,16 +291,16 @@ async function refusedDeliveries(now: number, open: AlertState): Promise<Finding
 
 async function backupAge(now: number): Promise<Finding[]> {
   if (!backupConfigured()) return [];
-  const [b] = await sql<{ value: { at: string; uploaded: boolean; filesError?: string } }[]>`SELECT value FROM settings WHERE key = 'backup.last'`;
+  const last = await lastBackupStatus();
   // A failed archive updates backup.last too. Reuse the run history so repeated failures cannot
   // reset the age; before the first success, count from the first attempt rather than from now.
   const [runs] = await sql<{ last_ok: Date | null; first_attempt: Date | null }[]>`
     SELECT max(finished_at) FILTER (WHERE status = 'ok') AS last_ok, min(started_at) AS first_attempt
     FROM job_runs WHERE job = 'ops.backup'`;
-  const lastOk = Math.max(runs?.last_ok?.getTime() ?? 0, b?.value.uploaded ? Date.parse(b.value.at) : 0);
+  const lastOk = Math.max(runs?.last_ok?.getTime() ?? 0, last?.uploaded ? Date.parse(last.at) : 0);
   const since = lastOk || runs?.first_attempt?.getTime() || now;
   const age = now - since;
-  const state = b?.value.filesError ? `数据库已上传，附件打包失败：${b.value.filesError}` : b?.value.uploaded === false ? "未上传" : "";
+  const state = last?.filesError ? `数据库已上传，附件打包失败：${last.filesError}` : last?.uploaded === false ? "未上传" : "";
   if (age > 50 * 3600_000) {
     return [{
       key: "backup.failed",
@@ -300,8 +313,8 @@ async function backupAge(now: number): Promise<Finding[]> {
       since: new Date(since),
     }];
   }
-  if (!b || !b.value.uploaded || age > 30 * 3600_000) {
-    return [{ key: "backup.stale", level: "later", title: "数据库备份超过一天没成功", detail: b ? `最近一次 ${beijingStamp(b.value.at)}${state ? `（${state}）` : ""}；看 ops.backup` : "还没有成功的备份记录" }];
+  if (!last || !last.uploaded || age > 30 * 3600_000) {
+    return [{ key: "backup.stale", level: "later", title: "数据库备份超过一天没成功", detail: last ? `最近一次 ${beijingStamp(last.at)}${state ? `（${state}）` : ""}；看 ops.backup` : "还没有成功的备份记录" }];
   }
   return [];
 }
@@ -339,7 +352,7 @@ async function moduleAlerts(now: number): Promise<Finding[]> {
  * the weekly report: being slow, or too new to have a rhythm, is nothing anyone can fix, and may never end.
  */
 async function sourceFollowUps(now: number): Promise<FollowUp[]> {
-  if (!collecting()) return [];
+  if (!collectionEnabled()) return [];
   return (await sourceHealth(now)).flatMap(group => SOURCE_PROBLEMS.flatMap(p => group[p.problem].map((s): FollowUp => ({
     key: `sources.${p.problem}.${s.id}`, level: "later", title: `${group.name}信源「${s.name}」${p.title}`,
     detail: `${s.id}：${p.describe(s)}；${p.action}`, observedAt: p.observedAt(s) ?? undefined,
@@ -461,6 +474,11 @@ interface AlertEntry {
   title: string;
   since: string;
   sentAt?: string;
+  /** The level last told: a problem that turns more urgent is told at once (escalated). */
+  level?: Level;
+  /** Finding.settles of the latest finding, and the first round that no longer found it. */
+  settles?: number;
+  goneAt?: string;
   agentOnly?: true;
   privateOwner?: true;
   privateNotice?: PrivateNotice;
@@ -522,7 +540,7 @@ export async function holdAlert(key: string, reason: string, until: Date, actor:
 }
 
 async function dailyReportFindings(now: number, open: AlertState): Promise<Finding[]> {
-  if (!collecting() || !modelsOn()) return [];
+  if (!collectionEnabled() || !modelsOn()) return [];
   const today = beijingDate(now);
   const [activity] = await sql<{ first_report: string | null; first_attempt: Date | null }[]>`
     SELECT (SELECT min(key) FROM reports WHERE kind = 'daily') AS first_report,
@@ -628,7 +646,7 @@ export async function checkAlerts(now = Date.now()) {
         continue;
       }
     }
-    if (open?.sentAt && now - Date.parse(open.sentAt) <= REPEAT_MS[f.level]) continue;
+    if (open?.sentAt && now - Date.parse(open.sentAt) <= REPEAT_MS[f.level] && !escalated(open, f)) continue;
     const since = open ? new Date(open.since) : (f.since ?? new Date(now));
     // Claim AI was notified only after the hub actually accepts this incident's wake; persist the occurrence
     // timestamp first so a failed owner send or crash after waking cannot mint a second incident ID on retry.
@@ -654,8 +672,16 @@ export async function checkAlerts(now = Date.now()) {
       continue;
     }
     await sendAlert(msg.title, msg.lines);
-    state[f.key] = { ...entry, sentAt: new Date(now).toISOString() };
+    state[f.key] = { ...entry, sentAt: new Date(now).toISOString(), level: f.level };
     sent.push(f.key);
+  }
+  for (const f of all) {
+    const open = state[f.key];
+    if (!open) continue;
+    const { settles: _settles, goneAt: _goneAt, ...entry } = open;
+    // An incident told before levels were kept: from here on its level is the one found now.
+    if (entry.sentAt && !entry.level) entry.level = f.level;
+    state[f.key] = f.settles ? { ...entry, settles: f.settles } : entry;
   }
   const found = new Set(all.map((f) => f.key));
   const dailies = await settleDailies(state, found, now);
@@ -667,7 +693,14 @@ export async function checkAlerts(now = Date.now()) {
       delete state[key];
       continue;
     }
-    const msg = formatRecovery(open.title, new Date(open.since), now);
+    // Gone for less than its settling time, counted from the first round that no longer found it: it may
+    // come back as the same incident, so nothing is told yet.
+    const goneAt = open.settles ? Date.parse(open.goneAt ?? new Date(now).toISOString()) : null;
+    if (goneAt !== null && now - goneAt < open.settles!) {
+      state[key] = { ...open, goneAt: new Date(goneAt).toISOString() };
+      continue;
+    }
+    const msg = formatRecovery(open.title, new Date(open.since), goneAt ?? now);
     if (open.privateOwner) {
       await tellPrivate(key, open, msg, true);
       continue;

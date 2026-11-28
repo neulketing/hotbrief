@@ -10,11 +10,10 @@ import { z } from "zod";
 import { DEPLOYMENT, POLICY, SITE } from "@aihot/site";
 import { ENGLISH } from "@aihot/contracts/english";
 import type { Locale } from "@aihot/contracts/i18n";
-import { REPORT_NAMES, REPORT_NAMES_EN } from "@aihot/contracts/site";
+import { isReportKey, REPORT_NAMES, REPORT_NAMES_EN } from "@aihot/contracts/reports";
 import { PUBLIC_INTERFACE_VERSION } from "@aihot/contracts/http-policy";
 import { MCP_TOOL_NAMES as T, mcpToolName } from "@aihot/contracts/mcp";
 import { PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
-import { isValidDate } from "@aihot/contracts/time";
 import { config } from "@aihot/backend/config";
 import { cachedByKey } from "@aihot/backend/lib/cache";
 import { logError } from "@aihot/backend/lib/log-error";
@@ -23,7 +22,7 @@ import { SELECTION } from "@aihot/industry/selection";
 import { v1Items } from "@aihot/backend/publication/v1";
 import { SearchBusyError } from "@aihot/backend/publication/pool";
 import { resolveStory, v1HotTopics, v1Story } from "@aihot/backend/publication/stories";
-import { dailyWithNotes, isPeriodKey, v1Period } from "@aihot/backend/publication/reports";
+import { dailyWithNotes, v1Period } from "@aihot/backend/publication/reports";
 import * as english from "@aihot/backend/publication/english";
 import { serverModules } from "@aihot/backend/modules";
 import { inLanguage } from "./v1.ts";
@@ -53,8 +52,8 @@ const TRUST_STRUCTURED = { contentTrust: "untrusted_external_data", instructionP
 const MAX_REQUEST_BODY_SIZE = 256 * 1024;
 
 /** The text is the same answer /api/v1/agent gives (external data already fenced off inside it). */
-function ok(text: string, structured: Record<string, unknown>) {
-  return { _meta: TRUST_META, content: [{ type: "text" as const, text }], structuredContent: { ...structured, [`_${SITE.mcpPrefix}`]: TRUST_STRUCTURED } };
+function ok(text: string, structured: object) {
+  return { _meta: TRUST_META, content: [{ type: "text" as const, text }], structuredContent: { ...(structured as Record<string, unknown>), [`_${SITE.mcpPrefix}`]: TRUST_STRUCTURED } };
 }
 
 function fail(code: string, message: string) {
@@ -92,9 +91,12 @@ function input<S extends z.ZodRawShape>(shape: S) {
 }
 const langOf = (args: { lang?: string }): Locale => (ENGLISH && args.lang === "en" ? "en" : "zh");
 
-/** A tool's answer in its language: the text (names as the pages say them) and the JSON (as v1 gives it). */
-async function both<T>(body: T, text: english.Overlay<T>, json: english.Overlay<T>, lang: Locale): Promise<{ text: T; json: T }> {
-  return lang === "en" ? { text: await inLanguage(body, text, lang), json: await inLanguage(body, json, lang) } : { text: body, json: body };
+/** Both forms use the same translation snapshot. Programs keep the source's stored name in JSON. */
+function both<T>(body: T, overlay: (by: english.V1Reader) => english.Overlay<NoInfer<T>>, lang: Locale) {
+  return inLanguage({ text: body, json: body }, async (views, copy) => {
+    const [text, json] = await Promise.all([overlay("text")(views.text, copy), overlay("json")(views.json, copy)]);
+    return { text, json };
+  }, lang);
 }
 
 // Tool inputs are built once; each request's server instance registers the same schemas.
@@ -161,7 +163,7 @@ function registerTools(server: McpServer) {
     safe(T.latest, async (args) => {
       const lang = langOf(args);
       const query = { mode: args.mode, window: args.window, by: "timeline", category: args.category ?? null, q: null, limit: args.limit, cursor: null } as const;
-      const res = await both(await recent(`items:${JSON.stringify(query)}`, () => v1Items(query)), english.v1Items("text"), english.v1Items("json"), lang);
+      const res = await both(await recent(`items:${JSON.stringify(query)}`, () => v1Items(query)), english.v1Items, lang);
       return ok(latestAnswer(res.text, { window: args.window, mode: args.mode, category: args.category ?? null, limit: args.limit }, lang), { schemaVersion: 1, query: res.json.query, items: res.json.items });
     }),
   );
@@ -179,7 +181,7 @@ function registerTools(server: McpServer) {
       if (q.includes("\0")) return fail("invalid_request", lang === "en" ? "The search terms contain an unsupported character." : "搜索词包含不支持的特殊字符。");
       if ([...q].length < 2) return fail("invalid_request", lang === "en" ? "Search terms need 2 to 200 characters." : "搜索词需要 2 到 200 个字符。");
       const found = await searchItems(q, args.window, args.category ?? null, args.limit, (query) => recent(`items:${JSON.stringify(query)}`, () => v1Items(query)));
-      const res = await both(found.res, english.v1Items("text"), english.v1Items("json"), lang);
+      const res = await both(found.res, english.v1Items, lang);
       return ok(searchAnswer({ ...found, res: res.text }, { q, window: args.window, category: args.category ?? null }, lang), { schemaVersion: 1, query: res.json.query, items: res.json.items });
     }),
   );
@@ -193,7 +195,7 @@ function registerTools(server: McpServer) {
     },
     safe(T.hot, async (args) => {
       const lang = langOf(args);
-      const all = await both(await recent("hot", () => v1HotTopics()), english.v1Hot("text"), english.v1Hot("json"), lang);
+      const all = await both(await recent("hot", () => v1HotTopics()), english.v1Hot, lang);
       const items = all.json.items.slice(0, args.limit);
       return ok(hotAnswer(all.text, args.limit, "mcp", lang), { schemaVersion: 1, count: items.length, items });
     }),
@@ -208,11 +210,10 @@ function registerTools(server: McpServer) {
     },
     safe(T.story, async (args) => {
       const lang = langOf(args);
-      let found = await resolveStory(args.public_id.trim());
-      if (found.kind === "merged") found = await resolveStory(found.target);
-      const read = found.kind === "found" ? await v1Story(found.storyId) : null;
+      const found = await resolveStory(args.public_id.trim());
+      const read = found.kind !== "not_found" ? await v1Story(found.storyId) : null;
       if (!read) return fail("not_found", lang === "en" ? `No such public story; only use a public_id ${T.hot} returned.` : `没有这个公开事件；只使用 ${T.hot} 返回的 public_id。`);
-      const body = await both(read, english.v1StoryAnswer("text"), english.v1StoryAnswer("json"), lang);
+      const body = await both(read, english.v1StoryAnswer, lang);
       const story = { ...body.json.story, reports: body.json.story.reports.slice(0, args.report_limit) };
       return ok(storyAnswer(body.text.story, args.report_limit, "mcp", lang), { schemaVersion: 1, story });
     }),
@@ -228,12 +229,11 @@ function registerTools(server: McpServer) {
     safe(T.daily, async (args) => {
       const lang = langOf(args);
       const en = lang === "en";
-      if (args.date && !isValidDate(args.date)) return fail("invalid_request", en ? `${args.date} is not a real date.` : `${args.date} 不是有效日期。`);
+      if (args.date && !isReportKey("daily", args.date)) return fail("invalid_request", en ? `${args.date} is not a real date.` : `${args.date} 不是有效日期。`);
       const res = await recent(`daily:${args.date ?? "latest"}`, () => dailyWithNotes(args.date ?? "latest"));
       if (!res) return fail("not_found", args.date ? (en ? `There is no daily for ${args.date}.` : `没有 ${args.date} 的日报。`) : (en ? "No daily has been published yet." : "还没有发布过日报。"));
-      const body = await both(res.body, english.v1DailyAnswer("text"), english.v1DailyAnswer("json"), lang);
-      const notes = await inLanguage(res.notes, english.v1DailyNotes, lang);
-      return ok(dailyAnswer(body.text.report, "mcp", notes, res.leadItemId, lang), body.json);
+      const daily = await both(res, english.v1DailyWithNotes, lang);
+      return ok(dailyAnswer(daily.text.body.report, "mcp", daily.text.notes, daily.text.leadItemId, lang), daily.json.body);
     }),
   );
 
@@ -246,19 +246,19 @@ function registerTools(server: McpServer) {
     server.registerTool(
       p.tool,
       { description: p.description, inputSchema: p.input, annotations: ANNOTATIONS },
-      safe(p.tool, async (args: { week?: string; month?: string; lang?: "zh" | "en" }) => {
+      safe(p.tool, async (args: { week?: string; month?: string; lang?: Locale }) => {
         const lang = langOf(args);
         const en = lang === "en";
         const name = REPORT_NAMES_EN[p.kind].toLowerCase();
         const key = p.key(args);
-        if (key && !isPeriodKey(p.kind, key)) return fail("invalid_request", en ? `${key} is not ${p.formEn}.` : `${key} 不是${p.form}。`);
+        if (key && !isReportKey(p.kind, key)) return fail("invalid_request", en ? `${key} is not ${p.formEn}.` : `${key} 不是${p.form}。`);
         const read = await recent(`${p.kind}:${key ?? "latest"}`, () => v1Period(p.kind, key ?? "latest"));
         if (!read) {
           return fail("not_found", key
             ? (en ? `There is no ${name} for ${key}; don't pass off another issue.` : `没有 ${key} 的${REPORT_NAMES[p.kind]}；不要换一期冒充。`)
             : (en ? `No ${name} has been published yet.` : `还没有发布过${REPORT_NAMES[p.kind]}。`));
         }
-        const body = await both(read, english.v1PeriodAnswer(p.kind, "text"), english.v1PeriodAnswer(p.kind, "json"), lang);
+        const body = await both(read, (by) => english.v1PeriodAnswer(p.kind, by), lang);
         return ok(periodAnswer(body.text.report, p.kind, "mcp", lang), body.json);
       }),
     );

@@ -7,13 +7,14 @@ import { Collapse } from "../components/ui/Presence";
 import { scrollBehavior, useSwapped } from "../lib/motion";
 import { edgeTtl } from "../lib/api.server";
 import { pageMeta } from "../lib/seo";
-import { KEYS, lastPage, readJson, writeRaw } from "../lib/local-state";
+import { KEYS, lastPage } from "../lib/local-state";
+import { readJson, writeRaw } from "../lib/browser-storage";
 import { IconCheck, IconClose, IconImage } from "../components/icons";
 import { RingMark } from "@aihot/site/brand/Logo.tsx";
 import { AsideCard, ReadingLayout } from "../components/ui/Page";
 import { PhoneBar } from "../components/shell/PhoneBar";
 import type { Screen } from "../components/shell/screens";
-import { isHydrated } from "../lib/hydration";
+import { useHydrated } from "../lib/hydration";
 import type { WebModule } from "../modules";
 import { webModules } from "../site-modules";
 import { Link, useNavigate } from "../lib/link";
@@ -149,8 +150,7 @@ export default function FeedbackPage() {
   // pages have no English edition), so English pages keep the site's own words.
   const { state: navigation, pathname, search, key: visit } = useLocation();
   const navigate = useNavigate();
-  const [hydrated, setHydrated] = useState(isHydrated);
-  useEffect(() => setHydrated(true), []);
+  const hydrated = useHydrated();
   const guide = hydrated && locale === "zh" ? guideFor(navigation) : null;
   const [draft, setDraft] = useState<Draft>({ content: "", email: "", pageUrl: params.get("from") ?? "" });
   const [shot, setShot] = useState<{ file: File; url: string } | null>(null);

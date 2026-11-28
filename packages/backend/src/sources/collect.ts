@@ -6,16 +6,19 @@ import { PresentationMismatch } from "../content/presentation.ts";
 import { HttpStatusError } from "../lib/http-fetch.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
 import { sha256 } from "../lib/ids.ts";
-import { enqueue, QUEUES, shutdownSignal } from "../jobs/queue.ts";
+import { enqueue, QUEUES } from "../jobs/queue.ts";
+import { shutdownSignal } from "../lib/shutdown.ts";
 import { runOwner } from "../jobs/runs.ts";
 import { queueProcessing } from "../jobs/content.ts";
+import { JINA_URL_PATTERN } from "../providers/jina.ts";
 import { BudgetExceededError, completeReceipt } from "../providers/receipts.ts";
+import { socialdataServerError } from "../providers/socialdata.ts";
 import { fetchRss } from "./rss.ts";
 import { fetchDetail, fetchWebList, isCallToActionTitle, needsTitle, type DetailNeed } from "./web-list.ts";
 import { unsupportedConfig } from "./config-keys.ts";
 import { admitListing, filterPublicationWindow } from "./filters.ts";
 import { fetchJsonList } from "./json-list.ts";
-import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, selfThreadHandle, SHARDABLE_SQL, tweetToCandidate, type XBacklog } from "./x.ts";
+import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, selfThreadHandle, SHARDABLE_SQL, tweetToCandidate, xIdAt, type XBacklog } from "./x.ts";
 import { xHandle } from "./account.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 import { readsWhole, usePace } from "./uses.ts";
@@ -288,17 +291,31 @@ async function store(sourceId: string, kind: string, candidates: CollectionCandi
     if (res.created) created += 1;
     if (res.revised) revised += 1;
     // Extraction first when the source wants full text and none came with the listing, else analysis.
-    if (res.created || res.revised || res.processingNeeded) await queueProcessing(res.articleId);
+    if (res.processingNeeded) await queueProcessing(res.articleId);
   }
   return { created, revised };
 }
 
 /**
- * The end of a fetch run, on the run and on its source. Success marks the source healthy and due again
- * one interval later. A failure counts toward "failing" (5 in a row) and waits longer after each one,
- * up to six hours; a full budget is not the source's failure: it waits 15 minutes and counts nothing.
+ * Why a run failed. "budget": a full budget, not the source's failure. "provider": SocialData could not
+ * get the data from X (socialdataServerError); it counts, but the account is read again at its usual pace,
+ * because waiting longer bought nothing: 2026-11-21..26, in 455 of the 456 waits over 90 minutes after such a
+ * failure, other searches already worked meanwhile, and one shard went 21 hours unread. "source": anything else.
  */
-async function recordFetch(db: Db, sourceId: string, runId: number, run: { found: number; created: number; detail: object | null } & ({ cursor: Record<string, unknown> } | { error: string; budget: boolean })): Promise<void> {
+type FailureCause = "budget" | "provider" | "source";
+
+function failureCause(error: unknown): FailureCause {
+  if (error instanceof BudgetExceededError) return "budget";
+  return socialdataServerError(error) ? "provider" : "source";
+}
+
+/**
+ * The end of a fetch run, on the run and on its source. Success marks the source healthy and due again
+ * one interval later. A failure counts toward "failing" (5 in a row); the source's own failure waits longer
+ * after each one, up to six hours, the provider's waits one interval; a full budget waits 15 minutes and
+ * counts nothing.
+ */
+async function recordFetch(db: Db, sourceId: string, runId: number, run: { found: number; created: number; detail: object | null } & ({ cursor: Record<string, unknown> } | { error: string; cause: FailureCause })): Promise<void> {
   const detail = run.detail ? db.json(run.detail as never) : null;
   if ("cursor" in run) {
     const changed = await db`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${run.found}, new_count = ${run.created},
@@ -314,12 +331,14 @@ async function recordFetch(db: Db, sourceId: string, runId: number, run: { found
   const changed = await db`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${run.found}, new_count = ${run.created},
     error = ${run.error}, detail = nullif(coalesce(detail,'{}'::jsonb) || coalesce(${detail}::jsonb,'{}'::jsonb),'{}'::jsonb) WHERE id = ${runId} AND status = 'running'`;
   if (!changed.count) return;
+  const budget = run.cause === "budget";
   await db`
     UPDATE sources SET last_fetch_at = now(),
-      fail_count = CASE WHEN ${run.budget} THEN fail_count ELSE fail_count + 1 END,
+      fail_count = CASE WHEN ${budget} THEN fail_count ELSE fail_count + 1 END,
       last_error = ${run.error},
-      health = CASE WHEN NOT enabled THEN 'paused' WHEN ${run.budget} THEN health WHEN fail_count + 1 >= 5 THEN 'failing' ELSE 'degraded' END,
-      next_fetch_at = now() + make_interval(mins => CASE WHEN ${run.budget} THEN 15 ELSE LEAST(interval_minutes * (fail_count + 2), 360) END),
+      health = CASE WHEN NOT enabled THEN 'paused' WHEN ${budget} THEN health WHEN fail_count + 1 >= 5 THEN 'failing' ELSE 'degraded' END,
+      next_fetch_at = now() + make_interval(mins => CASE WHEN ${budget} THEN 15 WHEN ${run.cause === "provider"} THEN interval_minutes
+        ELSE LEAST(interval_minutes * (fail_count + 2), 360) END),
       updated_at = now()
     WHERE id = ${sourceId}`;
 }
@@ -439,13 +458,10 @@ export async function collectSource(sourceId: string, opts: { force?: boolean; x
       throw error;
     }
     const message = String(error instanceof Error ? error.message : error).slice(0, 1000);
-    await sql.begin(tx => recordFetch(tx, sourceId, run!.id, { found, created, detail: null, error: message, budget: error instanceof BudgetExceededError }));
+    await sql.begin(tx => recordFetch(tx, sourceId, run!.id, { found, created, detail: null, error: message, cause: failureCause(error) }));
     return { sourceId, status: "failed", found, created, revised, error: message };
   }
 }
-
-/** X ids begin with their millisecond timestamp (since 2010-11-04): the smallest id of a post made at `ms`. */
-const xIdAt = (ms: number) => (BigInt(Math.max(0, ms - 1288834974657)) << 22n);
 
 /**
  * Where an account's posts are known to be read up to. A quiet account's newest post can be months
@@ -540,10 +556,10 @@ export async function collectXShard(key: string, sourceIds: string[]): Promise<{
       throw error;
     }
     const message = String(error instanceof Error ? error.message : error).slice(0, 1000);
-    const budget = error instanceof BudgetExceededError;
+    const cause = failureCause(error);
     await sql.begin(async tx => {
       for (const m of members) {
-        await recordFetch(tx, m.id, runs.get(m.id)!, { found: 0, created: 0, detail: { shard: key, accounts: members.length }, error: message, budget });
+        await recordFetch(tx, m.id, runs.get(m.id)!, { found: 0, created: 0, detail: { shard: key, accounts: members.length }, error: message, cause });
       }
     });
     return { key, status: "failed", accounts: members.length, found, created, error: message };
@@ -588,7 +604,7 @@ const X_SHARD_MINUTES: Record<string, number> = { editorial: 30, hot_signal: 60 
 const shardMinutes = (mode: string, uses: readonly string[]) => X_SHARD_MINUTES[mode] ?? (Number.isFinite(usePace(uses)) ? usePace(uses) : 60);
 
 /** Listings read through Jina, paid per read. */
-const paidListing = sql`coalesce(config->>'url', '') LIKE 'https://r.jina.ai/%'`;
+const paidListing = sql`coalesce(config->>'url', '') LIKE ${JINA_URL_PATTERN}`;
 /** They are not looked at more than hourly: busy ones would outrun Jina's daily budget. */
 const PAID_LISTING_FLOOR = 60;
 

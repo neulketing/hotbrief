@@ -10,7 +10,8 @@ import { after, before, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
 import { detachFromFact, requestRegroup } from "@aihot/backend/events/corrections";
 import { upsertMaterial } from "@aihot/backend/content/materials";
-import { consolidate, linkRelatedStories, liveStory } from "@aihot/backend/events/consolidate";
+import { consolidate, linkRelatedStories } from "@aihot/backend/events/consolidate";
+import { survivingStory } from "@aihot/backend/events/identity";
 import { groupArticle } from "@aihot/backend/events/group";
 import { mergeFactInto, mergeStoryInto } from "@aihot/backend/events/merge";
 import { candidateViews } from "@aihot/backend/events/recall";
@@ -94,7 +95,7 @@ before(async () => {
   const first = await report("first");
   await sql`INSERT INTO fact_articles (fact_id, article_id, role) VALUES (${factId}, ${first}, 'report')`;
   await sql`INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at)
-            VALUES (${storyId}, ${first}, ${`source:${SOURCE}`}, ${SOURCE}, 'editorial', now())`;
+            VALUES (${storyId}, ${first}, ${`source:${SOURCE}`}, ${SOURCE}, 'editorial', now() - interval '1 minute')`;
 });
 after(async () => {
   await provider.close();
@@ -114,7 +115,7 @@ const member = async (fact: number, role = "report", manual = false) => {
   return id;
 };
 const signalIn = (story: number, id: string) =>
-  sql`INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at) VALUES (${story}, ${id}, ${`source:${SOURCE}`}, ${SOURCE}, 'editorial', now())`;
+  sql`INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at) VALUES (${story}, ${id}, ${`source:${SOURCE}`}, ${SOURCE}, 'editorial', now() - interval '1 minute')`;
 
 test("merging facts moves reports, roles, heat and attached posts, and an emptied story's address follows", async () => {
   const into = await newFact();
@@ -267,9 +268,9 @@ test("old story addresses and grouping targets reach the survivor after a long s
     last = next;
   }
   const [survivor] = await sql<{ public_id: string }[]>`SELECT public_id FROM stories WHERE id = ${last.story}`;
-  for (const publicId of [original!.public_id, alias]) assert.deepEqual(await resolveStory(publicId), { kind: "merged", target: survivor!.public_id });
+  for (const publicId of [original!.public_id, alias]) assert.deepEqual(await resolveStory(publicId), { kind: "merged", storyId: last.story, target: survivor!.public_id });
   assert.deepEqual(await resolveStory(survivor!.public_id), { kind: "found", storyId: last.story, publicId: survivor!.public_id });
-  assert.equal(await liveStory(first.story), last.story);
+  assert.equal((await survivingStory(first.story))[0]?.id, last.story);
   // Multi-hop merges flatten merged_into and story_aliases directly onto the surviving story.
   const [flattened] = await sql<{ merged_into: number | null }[]>`SELECT merged_into FROM stories WHERE id = ${first.story}`;
   assert.equal(Number(flattened!.merged_into), last.story);

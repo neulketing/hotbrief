@@ -31,6 +31,13 @@ function bool(name: string, fallback: boolean): boolean {
   return value === "true";
 }
 
+/** Collection schedules, workers and ingest endpoints all honor the same opt-in. */
+export const collectionEnabled = () => bool("COLLECT_ENABLED", false);
+/** Model calls and model-dependent alerts honor the same runtime opt-in. */
+export const modelCallsEnabled = () => bool("MODEL_CALLS_ENABLED", false);
+/** Internal Feishu chats, alerts, feedback forwarding and agent hub delivery honor the same runtime opt-in. */
+export const feishuInternalEnabled = () => bool("FEISHU_INTERNAL_ENABLED", false);
+
 export const isProduction = env.NODE_ENV === "production";
 
 /** AIHOT_CREDENTIALS_DIR, else the site's own default (relative to the repository). */
@@ -63,9 +70,6 @@ export const config = {
   dataDir: str("AIHOT_DATA_DIR", path.join(REPO_ROOT, ".data")),
   // Name of this deployment in alerts ("production" sends them without a prefix).
   environmentName: str("AIHOT_ENVIRONMENT", isProduction ? "production" : "development"),
-  // External-action valve: off unless the environment turns it on, like COLLECT_ENABLED (read by the
-  // worker).
-  modelCallsEnabled: bool("MODEL_CALLS_ENABLED", false),
   devAdmin: env.DEV_AUTH_ROLE === "admin" ? { displayName: env.DEV_AUTH_DISPLAY_NAME || "Dev Admin" } : null,
   /** The admin password (at least 12 characters), for sites with admin pages. */
   adminPassword: env.ADMIN_PASSWORD || null,

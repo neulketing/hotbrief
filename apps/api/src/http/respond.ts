@@ -2,9 +2,11 @@
 import { createHash } from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { POLICY } from "@aihot/site";
-import { NO_STORE, PUBLIC_API_CORS } from "@aihot/contracts/http-policy";
+import { etagMatches, NO_STORE, PUBLIC_API_CORS, type ProblemDetails } from "@aihot/contracts/http-policy";
 import { siteUrl } from "@aihot/backend/publication/links";
 import type { JsonNotice } from "@aihot/backend/modules";
+
+export { etagMatches };
 
 const PROBLEM_TITLES: Record<number, string> = {
   400: "Bad request",
@@ -17,27 +19,23 @@ const PROBLEM_TITLES: Record<number, string> = {
   503: "Temporarily unavailable",
 };
 
-export interface ProblemInit {
-  status: number;
-  code: string;
-  detail: string;
-  type?: string;
-  title?: string;
-  retryAfter?: number;
+export interface ProblemInit extends Pick<ProblemDetails, "status" | "code" | "detail" | "retryAfter">, Partial<Pick<ProblemDetails, "type" | "title">> {
   cacheControl?: string;
+  extensions?: Record<string, unknown> & { [Field in keyof ProblemDetails]?: never };
 }
 
 export function sendProblem(req: FastifyRequest, reply: FastifyReply, p: ProblemInit) {
-  const body: Record<string, unknown> = {
+  const body: ProblemDetails = {
     type: p.type ?? `/problems/${p.code.replace(/_/g, "-")}`,
     title: p.title ?? PROBLEM_TITLES[p.status] ?? "Error",
     status: p.status,
     detail: p.detail,
     code: p.code,
     requestId: req.id,
+    retryAfter: p.retryAfter,
+    ...p.extensions,
   };
   if (p.retryAfter !== undefined) {
-    body.retryAfter = p.retryAfter;
     reply.header("Retry-After", String(p.retryAfter));
   }
   return reply
@@ -71,14 +69,20 @@ export function applyPublicHeaders(reply: FastifyReply, opts: PublicHeadersOptio
   if (links.length) reply.header("Link", links.join(", "));
 }
 
-export function weakEtag(prefix: string, body: string): string {
-  return `W/"${prefix}-${createHash("sha256").update(body).digest("hex").slice(0, 16)}"`;
+/** Appends a Link header entry without ever producing `"undefined, …"` when none was set yet. */
+export function appendLink(reply: FastifyReply, value: string): void {
+  const existing = reply.getHeader("Link");
+  if (!existing) {
+    reply.header("Link", value);
+  } else if (Array.isArray(existing)) {
+    reply.header("Link", [...existing, value].join(", "));
+  } else {
+    reply.header("Link", `${existing}, ${value}`);
+  }
 }
 
-export function etagMatches(header: string | undefined, etag: string): boolean {
-  if (!header) return false;
-  const strip = (t: string) => t.trim().replace(/^W\//, "");
-  return header.split(",").some((t) => t.trim() === "*" || strip(t) === strip(etag));
+export function weakEtag(prefix: string, body: string): string {
+  return `W/"${prefix}-${createHash("sha256").update(body).digest("hex").slice(0, 16)}"`;
 }
 
 /**
@@ -143,6 +147,23 @@ export function strictQuery(req: FastifyRequest, allowed: readonly string[]): Re
 /** The client's address as nginx passes it on (X-Real-IP), else the connection's. */
 export function clientIp(req: FastifyRequest): string {
   return String(req.headers["x-real-ip"] ?? req.ip ?? "");
+}
+
+/** Lenient integer parser for internal/site endpoints: rejects floats/NaN and clamps to [min, max]. */
+export function clampedInt(raw: string | undefined, min: number, max: number, fallback: number): number {
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  if (!Number.isInteger(n)) return fallback;
+  return Math.min(Math.max(n, min), max);
+}
+
+/** Non-throwing single-parameter lookup for telemetry hooks that must never interrupt responses on malformed queries. */
+export function safeQueryParam(req: FastifyRequest, key: string): string | undefined {
+  const raw = req.raw.url ?? "";
+  const qIndex = raw.indexOf("?");
+  if (qIndex < 0) return undefined;
+  const value = new URLSearchParams(raw.slice(qIndex + 1)).get(key);
+  return value === null || value.includes("\0") ? undefined : value;
 }
 
 /** Lenient parsing for site endpoints: first value wins, unknown keys ignored. */

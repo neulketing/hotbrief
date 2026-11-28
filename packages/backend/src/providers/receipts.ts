@@ -11,6 +11,12 @@ import { sql, type Db } from "../db.ts";
 import { sha256, stableJson } from "../lib/ids.ts";
 import { shutdownSignal } from "../lib/shutdown.ts";
 
+export const AUTO_RELEASE_NOTE = "自动放行：结果未知超过 30 分钟，未核对是否计费";
+
+/** Whether receipt r has used its automatic release, including attempts recorded before the flag. */
+export const alreadyAutoReleased = sql`EXISTS (SELECT 1 FROM receipt_attempts a WHERE a.receipt_id = r.id
+  AND (a.auto_released OR a.error LIKE ${AUTO_RELEASE_NOTE + "%"}))`;
+
 /** The text of a spent budget's error; with `%` for both parts it is the LIKE pattern that finds every saved one. */
 export const budgetMessage = (service: string, window: string) => `Budget for ${service} exhausted (${window})`;
 
@@ -86,6 +92,15 @@ export function failureKind(error: unknown): FailureKind {
 /** The receipt a failed call leaves to look at: its unusable answer, or the request whose outcome is unknown. */
 export function failedReceiptId(error: unknown): number | null {
   return error instanceof ModelOutputError || error instanceof ReceiptUnknownError ? error.receiptId : null;
+}
+
+/**
+ * A failure that ends a batch run without counting against its items: model calls switched off, a full
+ * budget, an account refusal, the same request in flight, or the provider down for now.
+ */
+export function stopsBatchRun(error: unknown): boolean {
+  return ["off", "budget", "busy", "outage"].includes(failureKind(error))
+    || (error instanceof ProviderRejectedError && error.accessRefused);
 }
 
 /** The provider boundary accepts both OpenAI-compatible nested errors and flat provider errors. */
